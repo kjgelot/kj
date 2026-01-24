@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Pipe Weight Calculator</title>
+    <style> html { display: none; } </style>
+    <script>
+        // ==========================================
+        // 1. TIME LIMIT SETTING (અહીં મિનિટ બદલો)
+        // ==========================================
+        const TIME_LIMIT = 10; // અત્યારે 10 મિનિટ છે
+        // ==========================================
+
+        // 2. CHECK LOGIN KEY
+        const key = sessionStorage.getItem("company_access_key");
+        const loginTime = sessionStorage.getItem("login_time_stamp");
+        const now = Date.now();
+        const limit = TIME_LIMIT * 60 * 1000; // Milliseconds convert
+
+        // જો લોગિન કી ન હોય તો બહાર કાઢો
+        if (key !== "GRANTED_SECURE_2026") {
+            window.location.href = "login.html";
+        } 
+        // જો સમય પૂરો થઈ ગયો હોય તો લોગઆઉટ કરો
+        else if (loginTime && (now - loginTime > limit)) {
+            alert("Time Over! (10 Minutes). Please Login Again.");
+            sessionStorage.clear(); // બધું સાફ કરો
+            window.location.href = "login.html";
+        } 
+        else {
+            // બધું બરાબર હોય તો પેજ બતાવો
+            document.documentElement.style.display = 'block';
+            
+            // જો લોગિન ટાઈમ સેવ ન હોય (જૂના લોગિનમાં), તો અત્યારનો ટાઈમ સેવ કરો
+            if (!loginTime) {
+                sessionStorage.setItem("login_time_stamp", now);
+            }
+        }
+
+        // 3. AUTO LOGOUT (ચાલુ પેજ પર 10 મિનિટ થાય તો)
+        setTimeout(() => {
+            alert("Session Expired!");
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }, limit);
+
+        // 4. BLOCK DEVELOPER TOOLS
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0056b3;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #ccc;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        nav {
+            background: #2c3e50;
+            padding: 15px 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav a { color: white; text-decoration: none; margin-left: 15px; }
+
+        .calculator-container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
+            margin: 30px auto;
+        }
+
+        h2 { text-align: center; color: var(--primary-color); margin-bottom: 20px; }
+
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em; }
+
+        .input-row { display: flex; gap: 10px; }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        input:focus, select:focus { border-color: var(--primary-color); outline: none; }
+
+        /* Hide Rectangular inputs by default */
+        .hidden { display: none; }
+
+        #result-box {
+            margin-top: 20px;
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #90caf9;
+            text-align: center;
+        }
+
+        .result-value { font-size: 1.5em; font-weight: bold; color: var(--primary-color); display: block; }
+        .cost-value { font-size: 1.1em; color: #2e7d32; font-weight: 600; margin-top: 5px; display: block; }
+        
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 15px;
+            background: #2c3e50;
+            color: white;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <strong>Ashapura Steel</strong>
+        <div>
+            <a href="index.html">Home</a>
+            <a href="tel:+916359063984">Call</a>
+        </div>
+    </nav>
+
+    <div class="calculator-container">
+        <h2>Pipe Weight & Cost</h2>
+
+        <div class="input-group">
+            <label>Material Grade:</label>
+            <select id="material">
+                <option value="7850">MS (Mild Steel) - 7850 kg/m³</option>
+                <option value="7930">SS 304 / 316 - 7930 kg/m³</option>
+                <option value="7800">SS 202 - 7800 kg/m³</option>
+                <option value="2700">Aluminum - 2700 kg/m³</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Shape:</label>
+            <select id="shape" onchange="toggleInputs()">
+                <option value="round">Round Pipe (Gol)</option>
+                <option value="square">Square Pipe (Choras)</option>
+                <option value="rectangular">Rectangular Pipe (Lamb Choras)</option>
+            </select>
+        </div>
+
+        <div id="round-inputs">
+            <div class="input-group">
+                <label>Outer Diameter (OD):</label>
+                <div class="input-row">
+                    <input type="text" id="od" inputmode="decimal" placeholder="e.g. 1.5">
+                    <select id="od-unit" style="width: 80px;"><option value="inch">inch</option><option value="mm">mm</option></select>
+                </div>
+            </div>
+        </div>
+
+        <div id="square-inputs" class="hidden">
+            <div class="input-group">
+                <label>Side Width (Size):</label>
+                <div class="input-row">
+                    <input type="text" id="side" inputmode="decimal" placeholder="e.g. 50">
+                    <select id="side-unit" style="width: 80px;"><option value="mm">mm</option><option value="inch">inch</option></select>
+                </div>
+            </div>
+        </div>
+
+        <div id="rect-inputs" class="hidden">
+            <div class="input-group">
+                <label>Width (Poholai):</label>
+                <div class="input-row">
+                    <input type="text" id="width" inputmode="decimal">
+                    <select id="w-unit" style="width: 80px;"><option value="mm">mm</option><option value="inch">inch</option></select>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Height (Unchai):</label>
+                <div class="input-row">
+                    <input type="text" id="height" inputmode="decimal">
+                    <select id="h-unit" style="width: 80px;"><option value="mm">mm</option><option value="inch">inch</option></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Thickness (Jadai):</label>
+            <div class="input-row">
+                <input type="text" id="thickness" inputmode="decimal" placeholder="e.g. 2">
+                <select id="t-unit" style="width: 80px;"><option value="mm">mm</option><option value="inch">inch</option></select>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Length (Lambai):</label>
+            <div class="input-row">
+                <input type="text" id="length" inputmode="decimal" placeholder="e.g. 20">
+                <select id="l-unit" style="width: 80px;"><option value="foot">feet</option><option value="meter">mtr</option></select>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Price per Kg (Optional):</label>
+            <input type="text" id="price" inputmode="decimal" placeholder="₹ Rate">
+        </div>
+
+        <div id="result-box">
+            <span class="result-value" id="weight-display">0.000 kg</span>
+            <span class="cost-value" id="cost-display">₹ 0.00</span>
+        </div>
+    </div>
+
+    <footer>
+        &copy; <span id="year"></span> Ashapura Steel
+    </footer>
+
+    <script>
+        document.getElementById("year").textContent = new Date().getFullYear();
+
+        // Helper to parse fractions like "1/2"
+        function parseVal(v) {
+            if (!v) return 0;
+            v = v.toString().trim();
+            if (v.includes('/')) {
+                let [n, d] = v.split('/');
+                return parseFloat(n) / parseFloat(d);
+            }
+            return parseFloat(v) || 0;
+        }
+
+        // Convert everything to meters for calculation
+        function toMeters(val, unit) {
+            if (unit === 'mm') return val / 1000;
+            if (unit === 'inch') return val * 0.0254;
+            if (unit === 'foot') return val * 0.3048;
+            if (unit === 'meter') return val;
+            return 0;
+        }
+
+        function toggleInputs() {
+            let shape = document.getElementById('shape').value;
+            document.getElementById('round-inputs').classList.add('hidden');
+            document.getElementById('square-inputs').classList.add('hidden');
+            document.getElementById('rect-inputs').classList.add('hidden');
+
+            if (shape === 'round') document.getElementById('round-inputs').classList.remove('hidden');
+            else if (shape === 'square') document.getElementById('square-inputs').classList.remove('hidden');
+            else document.getElementById('rect-inputs').classList.remove('hidden');
+            
+            calculate();
+        }
+
+        function calculate() {
+            let shape = document.getElementById('shape').value;
+            let density = parseFloat(document.getElementById('material').value);
+            let length = toMeters(parseVal(document.getElementById('length').value), document.getElementById('l-unit').value);
+            let thickness = toMeters(parseVal(document.getElementById('thickness').value), document.getElementById('t-unit').value);
+            let price = parseVal(document.getElementById('price').value);
+
+            if (length <= 0 || thickness <= 0) {
+                document.getElementById('weight-display').innerText = "0.000 kg";
+                return;
+            }
+
+            let area = 0; // Cross-sectional area in m²
+
+            if (shape === 'round') {
+                let od = toMeters(parseVal(document.getElementById('od').value), document.getElementById('od-unit').value);
+                let id = od - (2 * thickness);
+                if (id < 0) id = 0;
+                area = (Math.PI / 4) * ((od * od) - (id * id));
+            } 
+            else if (shape === 'square') {
+                let side = toMeters(parseVal(document.getElementById('side').value), document.getElementById('side-unit').value);
+                let innerSide = side - (2 * thickness);
+                if (innerSide < 0) innerSide = 0;
+                area = (side * side) - (innerSide * innerSide);
+            } 
+            else if (shape === 'rectangular') {
+                let w = toMeters(parseVal(document.getElementById('width').value), document.getElementById('w-unit').value);
+                let h = toMeters(parseVal(document.getElementById('height').value), document.getElementById('h-unit').value);
+                let innerW = w - (2 * thickness);
+                let innerH = h - (2 * thickness);
+                if (innerW < 0) innerW = 0;
+                if (innerH < 0) innerH = 0;
+                area = (w * h) - (innerW * innerH);
+            }
+
+            let weight = area * length * density;
+            
+            document.getElementById('weight-display').innerText = weight.toFixed(3) + " kg";
+            
+            if (price > 0) {
+                let totalCost = weight * price;
+                document.getElementById('cost-display').innerText = "₹ " + totalCost.toFixed(2);
+            } else {
+                document.getElementById('cost-display').innerText = "";
+            }
+        }
+
+        // Attach listeners
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('input', calculate);
+        });
+
+        // Initialize
+        toggleInputs();
+    </script>
+
+</body>
+</html>

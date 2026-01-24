@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Steel Circle Cutting Calculator</title>
+  <style> html { display: none; } </style>
+    <script>
+        // ==========================================
+        // 1. TIME LIMIT SETTING (અહીં મિનિટ બદલો)
+        // ==========================================
+        const TIME_LIMIT = 10; // અત્યારે 10 મિનિટ છે
+        // ==========================================
+
+        // 2. CHECK LOGIN KEY
+        const key = sessionStorage.getItem("company_access_key");
+        const loginTime = sessionStorage.getItem("login_time_stamp");
+        const now = Date.now();
+        const limit = TIME_LIMIT * 60 * 1000; // Milliseconds convert
+
+        // જો લોગિન કી ન હોય તો બહાર કાઢો
+        if (key !== "GRANTED_SECURE_2026") {
+            window.location.href = "login.html";
+        } 
+        // જો સમય પૂરો થઈ ગયો હોય તો લોગઆઉટ કરો
+        else if (loginTime && (now - loginTime > limit)) {
+            alert("Time Over! (10 Minutes). Please Login Again.");
+            sessionStorage.clear(); // બધું સાફ કરો
+            window.location.href = "login.html";
+        } 
+        else {
+            // બધું બરાબર હોય તો પેજ બતાવો
+            document.documentElement.style.display = 'block';
+            
+            // જો લોગિન ટાઈમ સેવ ન હોય (જૂના લોગિનમાં), તો અત્યારનો ટાઈમ સેવ કરો
+            if (!loginTime) {
+                sessionStorage.setItem("login_time_stamp", now);
+            }
+        }
+
+        // 3. AUTO LOGOUT (ચાલુ પેજ પર 10 મિનિટ થાય તો)
+        setTimeout(() => {
+            alert("Session Expired!");
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }, limit);
+
+        // 4. BLOCK DEVELOPER TOOLS
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
+    </script>
+  <style>
+    :root{
+      --bg:#0e1126; --bg2:#0a0d1f; --card:#14183a; --card2:#0c1030;
+      --muted:#aab3da; --text:#eef1ff; --accent:#7c5cff; --accent2:#00e0b8;
+      --danger:#ff5c7c; --ok:#00d38c; --border:rgba(255,255,255,.08);
+      --nav:#0f1434; --nav-border:rgba(255,255,255,.12);
+      --link:#8fd3ff;
+      font-family:Inter,system-ui,Segoe UI,Roboto,'Noto Sans',sans-serif;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+
+    body{
+      background:
+        radial-gradient(1000px 500px at 10% 0%, rgba(124,92,255,.18), transparent 60%),
+        radial-gradient(700px 400px at 90% 0%, rgba(0,224,184,.14), transparent 60%),
+        linear-gradient(180deg,var(--bg),var(--bg2));
+      color:var(--text);
+      display:flex;
+      flex-direction:column;
+      min-height:100vh;
+    }
+
+    /* ===== NAVBAR ===== */
+    nav{
+      position:sticky; top:0; z-index:50;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:16px; padding:12px 18px;
+      background:rgba(15,20,52,.85);
+      border-bottom:1px solid var(--nav-border);
+      backdrop-filter:saturate(140%) blur(8px);
+    }
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px}
+    .brand img{width:30px;height:30px;border-radius:8px;border:1px solid var(--nav-border)}
+    .nav-links{display:flex;flex-wrap:wrap;gap:10px}
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 12px;border-radius:999px;
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--nav-border);
+      text-decoration:none;color:var(--text);font-weight:700;font-size:.95rem;
+      transition:transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+    .chip:hover{transform:translateY(-1px);background:rgba(255,255,255,.12);border-color:rgba(124,92,255,.5)}
+
+    /* ===== CONTENT ===== */
+    .wrap{max-width:1100px;margin:18px auto 0;padding:0 18px 24px;width:100%}
+    h1{font-size:28px;margin:8px 0 8px;font-weight:800;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:16px;
+      margin-bottom:14px;
+      box-shadow:0 18px 40px rgba(0,0,0,.25);
+      animation:fadeIn .5s ease;
+    }
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+    .card h2{font-size:16px;margin:0 0 10px}
+    label{font-size:12px;color:var(--muted)}
+    input{
+      width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+      background:var(--card2);color:var(--text);margin-top:6px;outline:none;
+      transition:border .2s, box-shadow .2s;
+    }
+    input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,255,.18)}
+
+    .row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    @media (max-width:900px){.row,.row3{grid-template-columns:1fr}}
+
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+      border:1px solid var(--border);font-size:12px;color:var(--muted);background:var(--card2);
+      margin:2px 6px 2px 0
+    }
+    .pill b{color:var(--text)}
+
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px dashed var(--border);font-size:13px;text-align:left}
+
+    .cuts{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+    .cut{border:1px solid var(--border);border-radius:14px;padding:12px;background:var(--card2)}
+    .cutHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .muted{color:var(--muted)}
+    .badge{
+      font-size:11px;background:rgba(124,92,255,.15);color:#d6d0ff;border:1px solid rgba(124,92,255,.25);
+      padding:2px 8px;border-radius:999px;margin-right:6px
+    }
+    .btn{appearance:none;border:0;background:linear-gradient(135deg,var(--accent),#5d3bff);color:#fff;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+    .btn.danger{background:linear-gradient(135deg,#ff5c7c,#ff3c63)}
+    .warn{color:var(--danger);font-weight:700}
+    .ok{color:var(--ok);font-weight:700}
+
+    /* ===== FOOTER ===== */
+    footer{
+      margin-top:auto;text-align:center;padding:14px 16px;
+      background:var(--nav);border-top:1px solid var(--nav-border);color:var(--muted);font-size:14px
+    }
+    footer a{color:var(--link);text-decoration:none;margin:0 8px}
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav>
+    <div class="brand">
+      <!-- Optional logo: replace src with your logo file -->
+      <img src="AS Logo.png" alt="Ashapura Steel"/>
+      <span>Ashapura Steel</span>
+    </div>
+    <div class="nav-links">
+      <a class="chip" href="index.html">🏠 Home</a>
+      <a class="chip" href="tel:+916359063984">📞 Contact</a>
+      <a class="chip" href="https://wa.me/6359063984?text=Hello" target="_blank">💬 WhatsApp</a>
+      <a class="chip" href="mail.html">📧 E-Mail</a>
+    </div>
+  </nav>
+
+  <!-- ===== MAIN ===== -->
+  <div class="wrap">
+    <h1>Steel Circle Cutting Calculator</h1>
+    <div class="sub">Full-sheet costing with labour per kg and scrap credit. Steel density is fixed & hidden. Add circles automatically by typing values.</div>
+
+    <div class="card">
+      <h2>Sheet Inputs</h2>
+      <div class="row3">
+        <div>
+          <label>Thickness (mm)</label>
+          <input id="thickness" type="number" min="0.01" step="0.01"/>
+        </div>
+        <div>
+          <label>Total Sheet Weight (kg)</label>
+          <input id="weight" type="number" min="0.01" step="0.01"/>
+        </div>
+        <div>
+          <label>Sheet Price (₹/kg)</label>
+          <input id="priceKg" type="number" min="0" step="0.01"/>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label>Scrap Price (₹/kg)</label>
+          <input id="scrapPrice" type="number" min="0" step="0.01"/>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <span class="pill">Area = weight / (density × thickness)</span>
+        <span class="pill">Density <b>fixed</b></span>
+      </div>
+    </div>
+
+    <div id="sheetCard" class="card" style="margin-top:14px"></div>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    © <span id="year"></span> Ashapura Steel ⚡ |
+    <a href="index.html">Home</a> •
+    <a href="tel:+916359063984">Call</a> •
+    <a href="https://wa.me/6359063984">WhatsApp</a> •
+    <a href="mail.html">Mail</a>
+  </footer>
+
+  <script>
+    const DENSITY_STEEL = 7850; // fixed & hidden
+    const fmt = (n, dec = 3) => Number(n || 0).toLocaleString('en-IN',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Single sheet state
+    const sheet = { thickness:0, weight:0, priceKg:0, scrapPrice:0, cuts:[] };
+
+    const circleMassKg = (dia_mm, thk_mm) => {
+      const r = (dia_mm/1000)/2; const t = thk_mm/1000;
+      return Math.PI * r * r * t * DENSITY_STEEL;
+    };
+
+    const el = {
+      thickness: document.getElementById('thickness'),
+      weight: document.getElementById('weight'),
+      priceKg: document.getElementById('priceKg'),
+      scrapPrice: document.getElementById('scrapPrice'),
+      sheetCard: document.getElementById('sheetCard')
+    };
+
+    ['input','change'].forEach(ev=>{
+      [el.thickness,el.weight,el.priceKg,el.scrapPrice].forEach(inp=>inp.addEventListener(ev,()=>{
+        sheet.thickness = +el.thickness.value || 0;
+        sheet.weight    = +el.weight.value    || 0;
+        sheet.priceKg   = +el.priceKg.value   || 0;
+        sheet.scrapPrice= +el.scrapPrice.value|| 0;
+        render();
+      }));
+    });
+
+    function render(){
+      const basicsOk = sheet.thickness>0 && sheet.weight>0 && sheet.priceKg>=0 && sheet.scrapPrice>=0;
+      const t_m = sheet.thickness/1000;
+      const area_m2 = basicsOk && t_m>0 ? sheet.weight/(DENSITY_STEEL*t_m) : 0;
+
+      const totalCutKg = sheet.cuts.reduce((a,c)=>a + c.cutkg, 0);
+      const remainingRaw = sheet.weight - totalCutKg;
+      const remaining = Math.max(0, remainingRaw);
+
+      const sheetCost = sheet.weight * sheet.priceKg;
+      const totalLabour = sheet.cuts.reduce((a,c)=>a + (c.labourkg * c.cutkg),0);
+      const scrapRevenue = remainingRaw > 0 ? remaining * (sheet.scrapPrice || 0) : 0;
+      const netTotalCost = sheetCost + totalLabour - scrapRevenue;
+      const baseMaterialPerKg = totalCutKg > 0 ? ((sheetCost - scrapRevenue) / totalCutKg) : 0; // ₹/kg after scrap credit
+      const avgNetPerKgAll   = totalCutKg > 0 ? (netTotalCost / totalCutKg) : 0;                // ₹/kg incl avg labour
+
+      el.sheetCard.innerHTML = `
+        <div class="sectionTitle"><h2>Sheet Summary</h2></div>
+        <div style="margin-bottom:8px">
+          <span class="pill">Thickness <b>${sheet.thickness || '-'} mm</b></span>
+          <span class="pill">Sheet <b>${sheet.weight || '-'} kg</b></span>
+          <span class="pill">Sheet <b>₹${sheet.priceKg || '-'}/kg</b></span>
+          <span class="pill">Scrap <b>₹${sheet.scrapPrice || '-'}/kg</b></span>
+        </div>
+        <table>
+          <tr><th>Sheet Area (m²)</th><td>${basicsOk ? fmt(area_m2,4) + ' m²' : '-'}</td></tr>
+          <tr><th>Remaining Weight (kg)</th><td>${basicsOk ? fmt(remaining,4) + ' kg' : '-'}</td></tr>
+        </table>
+
+        <hr style="border-color:var(--border);border-style:solid;border-width:1px 0 0;margin:12px 0"/>
+        <div class="sectionTitle"><h2>Add Circles</h2></div>
+
+        <div class="row3">
+          <div>
+            <label>Diameter (mm)</label>
+            <input id="dia" type="number" min="0.1" step="0.1"/>
+          </div>
+          <div>
+            <label>Pieces</label>
+            <input id="pcs" type="number" min="0" step="1"/>
+          </div>
+          <div>
+            <label>Total Circle Weight (kg)</label>
+            <input id="kg" type="number" min="0" step="0.01"/>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Labour (₹/kg)</label>
+            <input id="lab" type="number" min="0" step="0.01"/>
+          </div>
+          <div>
+            <label>Notes</label>
+            <input id="note"/>
+          </div>
+        </div>
+        <div id="calc" class="muted" style="margin-top:6px;font-size:12px"></div>
+
+        <div id="cutsList" class="cuts"></div>
+        <div id="summary" style="margin-top:10px"></div>
+      `;
+
+      wireCutInputs(basicsOk, baseMaterialPerKg);
+      buildCutsList(baseMaterialPerKg);
+      buildSummary(totalCutKg, remaining, sheetCost, totalLabour, scrapRevenue, netTotalCost, avgNetPerKgAll);
+    }
+
+    // ------------ Better auto-add UX (debounced + on Enter/blur) ------------
+    let addLock = false;
+    let debounceTimer = null;
+    let lastSnapshot = "";
+
+    function wireCutInputs(basicsOk, baseMaterialPerKg){
+      const dia = document.getElementById('dia');
+      const pcs = document.getElementById('pcs');
+      const kg  = document.getElementById('kg');
+      const lab = document.getElementById('lab');
+      const note= document.getElementById('note');
+      const calc= document.getElementById('calc');
+
+      const snapshot = ()=>[dia.value, pcs.value, kg.value, lab.value, note.value].join('|');
+
+      function syncKgPcs(){
+        const d = +dia.value || 0;
+        let p = Math.max(0, +pcs.value || 0);
+        let k = Math.max(0, +kg.value  || 0);
+        if(d>0 && sheet.thickness>0){
+          const one = circleMassKg(d, sheet.thickness);
+          if(p>0 && k===0){ k = p*one; kg.value = +k.toFixed(3); }
+          else if(k>0 && p===0){ p = one>0 ? Math.max(1, Math.floor(k/one)) : 0; pcs.value = p; }
+          calc.innerHTML = `Per-piece mass: <b>${fmt(one,4)} kg</b>`;
+        }else{ calc.textContent = ''; }
+      }
+
+      function scheduleAutoAdd(){
+        if(!basicsOk) return;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(()=>{ tryAutoAdd('debounce'); }, 700);
+      }
+
+      function tryAutoAdd(reason){
+        if(addLock) return;
+        const d = +dia.value || 0;
+        const p = Math.max(0, +pcs.value || 0);
+        const k = Math.max(0, +kg.value  || 0);
+        const lv = (lab.value !== '' ? +lab.value : null);
+        const nt = note.value || '';
+        if(!(d>0 && (p>0 || k>0) && lv!==null)) return;
+
+        const snap = snapshot();
+        if(snap===lastSnapshot && reason!=='enter') return;
+        lastSnapshot = snap;
+
+        const one = circleMassKg(d, sheet.thickness);
+        const finalKg  = k>0 ? k : p*one;
+        const finalPcs = p>0 ? p : (one>0 ? Math.max(1, Math.floor(k/one)) : 0);
+
+        const usedKg = sheet.cuts.reduce((a,c)=>a+c.cutkg,0);
+        const remainingNow = Math.max(0, sheet.weight - usedKg);
+        if(remainingNow<=0) return;
+
+        let addKg  = Math.min(finalKg, remainingNow);
+        let addPcs = one>0 ? Math.max(0, Math.floor(addKg/one)) : 0;
+        if(addKg<=0) return;
+
+        addLock = true;
+        sheet.cuts.push({ dia:d, pcs:addPcs, cutkg:addKg, labourkg:lv, notes:nt });
+        render();
+        setTimeout(()=>{ addLock=false; },50);
+        setTimeout(()=>{ dia.value=''; pcs.value=''; kg.value=''; lab.value=''; note.value=''; calc.textContent=''; },0);
+      }
+
+      ['input'].forEach(ev=>{
+        [dia,pcs,kg,lab,note].forEach(i=>i.addEventListener(ev,()=>{ syncKgPcs(); scheduleAutoAdd(); }));
+      });
+
+      ['blur','change'].forEach(ev=>{
+        [dia,pcs,kg,lab].forEach(i=>i.addEventListener(ev,()=>{ syncKgPcs(); tryAutoAdd('blur'); }));
+      });
+
+      [dia,pcs,kg,lab,note].forEach(i=>i.addEventListener('keydown',e=>{
+        if(e.key==='Enter'){ e.preventDefault(); syncKgPcs(); tryAutoAdd('enter'); }
+      }));
+    }
+
+    function buildCutsList(baseMaterialPerKg){
+      const cutsList = document.getElementById('cutsList');
+      cutsList.innerHTML = '';
+      sheet.cuts.forEach((c,ci)=>{
+        const sizePerKg   = baseMaterialPerKg + c.labourkg;
+        const totalForCut = sizePerKg * c.cutkg;
+        const row = document.createElement('div'); row.className='cut';
+        row.innerHTML = `
+          <div class="cutHead">
+            <div>
+              <span class="badge">${c.dia} mm</span>
+              <span class="badge">${fmt(c.cutkg,3)} kg</span>
+              <span class="badge">${c.pcs} pcs</span>
+            </div>
+            <div>
+              <button class="btn ghost" data-i="${ci}">Remove</button>
+            </div>
+          </div>
+          <table>
+            <tr><th>Base material (₹/kg)</th><td>₹ ${fmt(baseMaterialPerKg,2)}</td></tr>
+            <tr><th>Labour (₹/kg)</th><td>₹ ${fmt(c.labourkg,2)}</td></tr>
+            <tr><th>Effective cost (₹/kg)</th><td><b>₹ ${fmt(sizePerKg,2)}</b></td></tr>
+            <tr><th>Total for this size (₹)</th><td>₹ ${fmt(totalForCut,2)}</td></tr>
+          </table>`;
+        row.querySelector('button').addEventListener('click',()=>{ sheet.cuts.splice(ci,1); render(); });
+        cutsList.appendChild(row);
+      });
+    }
+
+    function buildSummary(totalCutKg, remaining, sheetCost, totalLabour, scrapRevenue, netTotalCost, avgNetPerKgAll){
+      const summary = document.getElementById('summary');
+      if(!(sheet.thickness>0 && sheet.weight>0)){
+        summary.innerHTML = '<div class="muted">Enter sheet inputs to see summary.</div>';
+        return;
+      }
+      summary.innerHTML = `
+        <div class="card" style="margin-top:10px">
+          <h2>Summary</h2>
+          <table>
+            <tr><th>Total circle weight (kg)</th><td>${fmt(totalCutKg,4)}</td></tr>
+            <tr><th>Remaining scrap weight (kg)</th><td>${fmt(remaining,4)}</td></tr>
+            <tr><th>Sheet cost (₹)</th><td>₹ ${fmt(sheetCost,2)}</td></tr>
+            <tr><th>Labour total (₹)</th><td>₹ ${fmt(totalLabour,2)}</td></tr>
+            <tr><th>Scrap revenue (₹)</th><td>- ₹ ${fmt(scrapRevenue,2)}</td></tr>
+            <tr><th>Net total cost (₹)</th><td><b>₹ ${fmt(netTotalCost,2)}</b></td></tr>
+            <tr><th>Average net cost (₹/kg)</th><td><b>₹ ${fmt(avgNetPerKgAll,2)}</b></td></tr>
+          </table>
+        </div>`;
+    }
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>

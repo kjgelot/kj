@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ashapura Steel - Circle Calculator</title>
+    <style> html { display: none; } </style>
+    <script>
+        // ==========================================
+        // 1. TIME LIMIT SETTING (અહીં મિનિટ બદલો)
+        // ==========================================
+        const TIME_LIMIT = 10; // અત્યારે 10 મિનિટ છે
+        // ==========================================
+
+        // 2. CHECK LOGIN KEY
+        const key = sessionStorage.getItem("company_access_key");
+        const loginTime = sessionStorage.getItem("login_time_stamp");
+        const now = Date.now();
+        const limit = TIME_LIMIT * 60 * 1000; // Milliseconds convert
+
+        // જો લોગિન કી ન હોય તો બહાર કાઢો
+        if (key !== "GRANTED_SECURE_2026") {
+            window.location.href = "login.html";
+        } 
+        // જો સમય પૂરો થઈ ગયો હોય તો લોગઆઉટ કરો
+        else if (loginTime && (now - loginTime > limit)) {
+            alert("Time Over! (10 Minutes). Please Login Again.");
+            sessionStorage.clear(); // બધું સાફ કરો
+            window.location.href = "login.html";
+        } 
+        else {
+            // બધું બરાબર હોય તો પેજ બતાવો
+            document.documentElement.style.display = 'block';
+            
+            // જો લોગિન ટાઈમ સેવ ન હોય (જૂના લોગિનમાં), તો અત્યારનો ટાઈમ સેવ કરો
+            if (!loginTime) {
+                sessionStorage.setItem("login_time_stamp", now);
+            }
+        }
+
+        // 3. AUTO LOGOUT (ચાલુ પેજ પર 10 મિનિટ થાય તો)
+        setTimeout(() => {
+            alert("Session Expired!");
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }, limit);
+
+        // 4. BLOCK DEVELOPER TOOLS
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
+    </script>
+    <style>
+        :root {
+            --bg: #f5f7fa;
+            --text: #333;
+            --nav-bg: #2c3e50;
+            --link: white;
+            --card: #fff;
+        }
+
+        body.dark {
+            --bg: #121212;
+            --text: #f5f5f5;
+            --nav-bg: #1e1e1e;
+            --link: #90caf9;
+            --card: #1e1e1e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--nav-bg);
+            padding: 12px 20px;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 50
+        }
+
+        nav .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold
+        }
+
+        nav .brand img {
+            height: 32px;
+            width: 32px;
+            border-radius: 8px
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 16px
+        }
+
+        nav ul li a {
+            color: var(--link);
+            text-decoration: none;
+            font-weight: 600
+        }
+
+        .menu-toggle {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer
+        }
+
+        .theme-btn {
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #555;
+            background: #444;
+            color: #fff;
+            margin-left: 10px
+        }
+
+        @media(max-width:720px) {
+            nav ul {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 60px;
+                right: 10px;
+                background: var(--nav-bg);
+                padding: 10px;
+                border-radius: 10px
+            }
+
+            nav ul.show {
+                display: flex
+            }
+
+            .menu-toggle {
+                display: block
+            }
+        }
+
+        h1 {
+            text-align: center;
+            margin: 20px
+        }
+
+        .calculator {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            padding: 20px 30px;
+            text-align: left;
+            max-width: 400px;
+            width: 90%;
+            margin: auto
+        }
+
+        label {
+            font-size: 14px;
+            display: block;
+            margin-top: 10px
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 6px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px
+        }
+
+        #result {
+            margin-top: 16px;
+            font-weight: bold;
+            color: #007BFF;
+            text-align: center
+        }
+
+        footer {
+            background: var(--nav-bg);
+            color: var(--link);
+            text-align: center;
+            padding: 14px;
+            font-size: .9rem;
+            margin-top: auto
+        }
+
+        footer a {
+            color: var(--link);
+            text-decoration: none;
+            margin: 0 6px
+        }
+    </style>
+    <script>
+        function convertToCentimeters(value, unit) {
+            switch (unit) {
+                case "inch": return value * 2.54;
+                case "mm": return value / 10;
+                case "cm": return value;
+                case "meter": return value * 100;
+                default: return value;
+            }
+        }
+        function toggleShapeInputs() {
+            const shape = document.getElementById('shape').value;
+            document.getElementById('rectangle_inputs').style.display = (shape === "rectangle") ? "block" : "none";
+            document.getElementById('diameter_inputs').style.display = (shape === "rectangle") ? "none" : "block";
+        }
+        function calculateWashers() {
+            const shape = document.getElementById('shape').value;
+            const tVal = parseFloat(document.getElementById('thickness_value').value) || 0;
+            const tUnit = document.getElementById('thickness_unit').value;
+            const tCm = convertToCentimeters(tVal, tUnit);
+            if (tCm <= 0) { document.getElementById('result').textContent = "Enter valid thickness"; return; }
+            const density = 7.93; let vol = 0;
+            if (shape === "round") {
+                const d = parseFloat(document.getElementById('diameter_value').value) || 0;
+                const dCm = convertToCentimeters(d, document.getElementById('diameter_unit').value);
+                if (dCm > 0) { const r = dCm / 2; vol = Math.PI * Math.pow(r, 2) * tCm; }
+            } else if (shape === "square") {
+                const s = parseFloat(document.getElementById('diameter_value').value) || 0;
+                const sCm = convertToCentimeters(s, document.getElementById('diameter_unit').value);
+                if (sCm > 0) { vol = Math.pow(sCm, 2) * tCm; }
+            } else if (shape === "rectangle") {
+                const l = parseFloat(document.getElementById('length_value').value) || 0;
+                const w = parseFloat(document.getElementById('width_value').value) || 0;
+                const lCm = convertToCentimeters(l, document.getElementById('length_unit').value);
+                const wCm = convertToCentimeters(w, document.getElementById('width_unit').value);
+                if (lCm > 0 && wCm > 0) { vol = lCm * wCm * tCm; }
+            }
+            if (vol > 0) {
+                const mass = vol * density; const num = Math.floor(1000 / mass);
+                document.getElementById('result').textContent = `Number of ${shape} pieces in 1 kg: ${num}`;
+            } else { document.getElementById('result').textContent = "Enter valid dimensions"; }
+        }
+        window.onload = () => {
+            document.querySelectorAll('input,select').forEach(el => {
+                el.addEventListener('input', calculateWashers);
+                el.addEventListener('change', () => { calculateWashers(); toggleShapeInputs(); });
+            });
+            toggleShapeInputs(); calculateWashers();
+            document.getElementById("year").textContent = new Date().getFullYear();
+        }
+    </script>
+</head>
+
+<body>
+    <!-- NAV -->
+    <nav>
+        <div class="brand"><img src="AS Logo.png" alt="Logo"><span>Ashapura Steel</span></div>
+        <ul>
+            <li><a href="index.html">🏠 Home</a></li>
+            <li><a href="javascript:history.back()">🔙 Back</a></li>
+            <li><a href="tel:+916359063984">📞 Contact</a></li>
+            <li><a href="https://wa.me/916359063984" target="_blank">💬 WhatsApp</a></li>
+            <li><a href="mail.html">📧 Mail</a></li>
+        </ul>
+        <div>
+            <span class="menu-toggle" id="menuBtn">☰</span>
+            <button class="theme-btn" id="themeBtn">🌙</button>
+        </div>
+    </nav>
+
+    <!-- CALCULATOR -->
+    <h1>Circle / Washer Calculator</h1>
+    <div class="calculator">
+        <label>Shape:</label>
+        <select id="shape">
+            <option value="round">Round</option>
+            <option value="square">Square</option>
+            <option value="rectangle">Rectangle</option>
+        </select>
+
+        <div id="diameter_inputs">
+            <label>Diameter / Side:</label>
+            <input type="number" id="diameter_value" step="any">
+            <select id="diameter_unit">
+                <option value="mm">Millimeters</option>
+                <option value="inch">Inches</option>
+                <option value="cm">Centimeters</option>
+                <option value="meter">Meters</option>
+            </select>
+        </div>
+
+        <div id="rectangle_inputs">
+            <label>Length:</label><input type="number" id="length_value" step="any">
+            <select id="length_unit">
+                <option value="mm">Millimeters</option>
+                <option value="inch">Inches</option>
+                <option value="cm">Centimeters</option>
+                <option value="meter">Meters</option>
+            </select>
+            <label>Width:</label><input type="number" id="width_value" step="any">
+            <select id="width_unit">
+                <option value="mm">Millimeters</option>
+                <option value="inch">Inches</option>
+                <option value="cm">Centimeters</option>
+                <option value="meter">Meters</option>
+            </select>
+        </div>
+
+        <label>Thickness:</label>
+        <input type="number" id="thickness_value" step="any">
+        <select id="thickness_unit">
+            <option value="mm">Millimeters</option>
+            <option value="inch">Inches</option>
+            <option value="cm">Centimeters</option>
+            <option value="meter">Meters</option>
+        </select>
+
+        <div id="result"></div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        © <span id="year"></span> Ashapura Steel ⚡
+        <br>
+        <a href="index.html">Home</a> •
+        <a href="javascript:history.back()">Back</a> •
+        <a href="tel:+916359063984">Contact</a> •
+        <a href="https://wa.me/916359063984" target="_blank">WhatsApp</a> •
+        <a href="mail.html">Mail</a>
+    </footer>
+
+    <script>
+        document.getElementById("menuBtn").addEventListener("click", () => document.querySelector("nav ul").classList.toggle("show"));
+        document.getElementById("themeBtn").addEventListener("click", () => {
+            document.body.classList.toggle("dark");
+            document.getElementById("themeBtn").textContent = document.body.classList.contains("dark") ? "🌞" : "🌙";
+        });
+    </script>
+</body>
+
+</html>

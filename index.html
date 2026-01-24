@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Access System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0f172a; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif; color: white; user-select: none; }
+        .card { background: #1e293b; padding: 25px; border-radius: 20px; width: 100%; max-width: 420px; text-align: center; border: 1px solid #334155; position: relative; }
+        
+        .camera-container { 
+            position: relative; width: 100%; height: 320px; 
+            background: black; border-radius: 15px; overflow: hidden; 
+            border: 3px solid #64748b; margin-bottom: 20px; 
+        }
+        .camera-container.scan { border-color: #3b82f6; } /* Blue */
+        .camera-container.gps-success { border-color: #8b5cf6; box-shadow: 0 0 30px #8b5cf6; } /* Purple (GPS) */
+        .camera-container.face-success { border-color: #22c55e; box-shadow: 0 0 30px #22c55e; } /* Green (Face) */
+
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        .status-pill { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 8px 20px; border-radius: 30px; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap; }
+        
+        /* GPS Indicator */
+        .gps-badge { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 10px; font-size: 10px; color: #94a3b8; border: 1px solid #334155; }
+        .gps-active { color: #8b5cf6; border-color: #8b5cf6; animation: pulse 2s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .hidden { display: none !important; }
+        input { background: #334155; border: 1px solid #475569; color: white; padding: 12px; width: 100%; border-radius: 8px; margin-top: 5px; text-align: center; outline:none; }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<div class="card">
+    <div class="gps-badge" id="gpsStatus">📡 Checking Location...</div>
+    <h2 class="text-2xl font-bold mb-1 text-blue-400">Smart Access</h2>
+    <p class="text-xs text-gray-400 mb-4">Auto GPS <span class="text-yellow-400">OR</span> Face Scan</p>
+
+    <div class="camera-container" id="camBox">
+        <video id="video" autoplay playsinline muted></video>
+        <div class="status-pill" id="statusText">System Starting...</div>
+    </div>
+
+    <div id="loginSection">
+        <input type="password" id="passInput" placeholder="Password Login">
+        <button onclick="toggleMode()" class="w-full mt-3 text-xs text-gray-500 hover:text-white">Register New Face</button>
+    </div>
+
+    <div id="registerSection" class="hidden">
+        <h3 class="text-sm font-bold text-yellow-400 mb-2">Register New Staff</h3>
+        <input type="text" id="regName" placeholder="Enter Staff Name">
+        <button onclick="registerFace()" class="w-full bg-blue-600 p-2 rounded mt-2 font-bold">Smile to Save 📸</button>
+        <button onclick="toggleMode()" class="w-full mt-2 text-xs text-gray-400">Cancel</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    // 1. FIREBASE CONFIG
+    const firebaseConfig = {
+        apiKey: "AIzaSyAu7naZXlBRNh5VHYvNOi0zB6jPS3HMltM",
+        authDomain: "kalpesh-gelot.firebaseapp.com",
+        databaseURL: "https://kalpesh-gelot-default-rtdb.firebaseio.com",
+        projectId: "kalpesh-gelot",
+        storageBucket: "kalpesh-gelot.firebasestorage.app",
+        messagingSenderId: "417313613277",
+        appId: "1:417313613277:web:b1ff2a3712195467694234"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ============================================
+    // 2. SETTINGS
+    // ============================================
+    const OFFICE_LAT = 23.02540906292527; 
+    const OFFICE_LNG = 72.65407597797986; 
+    const HOME_LAT = 23.03395296600463; 
+    const HOME_LNG =72.67302582429525;
+    const ALLOWED_RADIUS = 200; // 1 KM Radius
+    
+
+    const _LOGIN_P = [75, 64, 76, 80, 101, 115, 104, 49, 50, 51]; 
+    const _REG_P = [75, 64, 76, 80, 101, 115, 104, 53, 50, 53, 55, 51, 55, 52, 53];
+    const TARGET_FILE = "All file.html";
+
+    const video = document.getElementById('video');
+    const statusText = document.getElementById('statusText');
+    const camBox = document.getElementById('camBox');
+    const gpsBadge = document.getElementById('gpsStatus');
+    
+    let faceMatcher = null;
+    let isLocked = false;
+    let isRegistering = false;
+    let blinkCounter = 0;
+
+    // 3. INITIALIZE
+    async function init() {
+        // STEP 1: Start GPS Immediately (Priority)
+        startGPS();
+
+        // STEP 2: Load Camera/AI in background (Backup)
+        try {
+            statusText.innerText = "Loading AI...";
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/'),
+                faceapi.nets.faceLandmark68TinyNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/'),
+                faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/'),
+                faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/')
+            ]);
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            video.srcObject = stream;
+            
+            await loadFaces();
+            startFaceLoop(); // Only runs if GPS hasn't already logged in
+        } catch (e) { 
+            console.error(e);
+            // If camera fails, GPS might still work
+            statusText.innerText = "Camera Error (GPS still active)"; 
+        }
+    }
+
+    async function loadFaces() {
+        const snap = await db.ref('allowed_faces').once('value');
+        const data = snap.val();
+        if (data) {
+            const descriptors = Object.keys(data).map(k => new faceapi.LabeledFaceDescriptors(data[k].name, [new Float32Array(data[k].descriptor)]));
+            faceMatcher = new faceapi.FaceMatcher(descriptors, 0.5);
+        }
+    }
+
+    // 4. GPS AUTO LOGIN (LOGIC 1)
+    // 4. GPS AUTO LOGIN (OFFICE OR HOME)
+    function startGPS() {
+        if (!navigator.geolocation) { gpsBadge.innerText = "No GPS"; return; }
+        
+        navigator.geolocation.watchPosition((pos) => {
+            if (isLocked || isRegistering) return;
+
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+
+            // Check Distance from OFFICE
+            const distOffice = getDist(OFFICE_LAT, OFFICE_LNG, lat, lng);
+            // Check Distance from HOME
+            const distHome = getDist(HOME_LAT, HOME_LNG, lat, lng);
+            
+            // Logic: Jo Office najik hoy ATHAVA Home najik hoy
+            if (distOffice <= ALLOWED_RADIUS) {
+                // OFFICE DETECTED
+                gpsBadge.innerText = `🏢 Office Area (${Math.round(distOffice)}m)`;
+                gpsBadge.classList.add('gps-active');
+                performLogin("Office GPS Auto", "Location: Office");
+
+            } else if (distHome <= ALLOWED_RADIUS) {
+                // HOME DETECTED
+                gpsBadge.innerText = `🏠 Home Area (${Math.round(distHome)}m)`;
+                gpsBadge.classList.add('gps-active');
+                performLogin("Home GPS Auto", "Location: Home");
+
+            } else {
+                // BANNE THI DUR
+                // Find minimum distance just to show user
+                const minDist = Math.min(distOffice, distHome);
+                gpsBadge.innerText = `📍 Outside (${Math.round(minDist/1000)}km)`;
+                gpsBadge.classList.remove('gps-active');
+            }
+        }, (err) => { 
+            gpsBadge.innerText = "GPS Error"; 
+        }, { enableHighAccuracy: true });
+    }
+
+    // 5. FACE LOGIN (LOGIC 2 - Backup)
+    function startFaceLoop() {
+        setInterval(async () => {
+            // If already logged in (by GPS or Face), stop scanning
+            if (isLocked || !video.srcObject) return;
+            
+            const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+            const det = await faceapi.detectSingleFace(video, options).withFaceLandmarks(true).withFaceExpressions().withFaceDescriptor();
+
+            if (det) {
+                const isReal = det.expressions.happy > 0.5 || checkBlink(det.landmarks);
+                
+                if (isRegistering) return;
+
+                if (faceMatcher) {
+                    const match = faceMatcher.findBestMatch(det.descriptor);
+                    if (match.label !== 'unknown') {
+                        if (isReal) {
+                            // SUCCESS: FACE MATCHED -> LOGIN
+                            performLogin(match.label, "Face Scan");
+                        } else {
+                            camBox.className = "camera-container action"; // Orange
+                            statusText.innerText = `Hi ${match.label}! Smile/Blink to Unlock`;
+                        }
+                    } else {
+                        statusText.innerText = "Unknown Person";
+                        camBox.style.borderColor = "red";
+                    }
+                }
+            } else {
+                statusText.innerText = "Scanning Face...";
+                camBox.className = "camera-container scan"; // Blue
+                blinkCounter = 0;
+            }
+        }, 150);
+    }
+
+    // 6. CENTRAL LOGIN FUNCTION
+    function performLogin(name, method) {
+        if (isLocked) return; // Prevent double login
+        isLocked = true;
+
+        // Visual Feedback based on method
+        if (method === "GPS Location") {
+            camBox.className = "camera-container gps-success"; // Purple for GPS
+            statusText.innerText = `📍 GPS Verified! Auto Login...`;
+        } else {
+            camBox.className = "camera-container face-success"; // Green for Face
+            statusText.innerText = `😊 Face Verified! Welcome ${name}`;
+        }
+        
+        // Save Log
+        db.ref('login_logs').push({ 
+            name: name, 
+            time: new Date().toLocaleString(), 
+            method: method 
+        });
+
+        // Set Key & Redirect
+        sessionStorage.setItem("company_access_key", "GRANTED_SECURE_2026");
+        setTimeout(() => { window.location.href = TARGET_FILE; }, 800);
+    }
+
+    // Helpers
+    function checkBlink(lm) {
+        const avg = (getEAR(lm.getLeftEye()) + getEAR(lm.getRightEye())) / 2;
+        if (avg < 0.26) blinkCounter++; 
+        else if (blinkCounter > 1 && blinkCounter < 10) { blinkCounter = 0; return true; } 
+        else blinkCounter = 0;
+        return false;
+    }
+    function getEAR(e) { return (d(e[1],e[5])+d(e[2],e[4])) / (2.0*d(e[0],e[3])); }
+    function d(p1,p2) { return Math.sqrt(Math.pow(p1.x-p2.x,2) + Math.pow(p1.y-p2.y,2)); }
+    function getDist(lat1,lon1,lat2,lon2) {
+        var R=6371; var dLat=deg2rad(lat2-lat1); var dLon=deg2rad(lon2-lon1); 
+        var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(deg2rad(lat1))*Math.cos(deg2rad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2); 
+        return R * 2 * Math.atan2(Math.sqrt(a),Math.sqrt(1-a)) * 1000;
+    }
+    function deg2rad(deg) { return deg * (Math.PI/180); }
+    
+    // Register & Pass
+    async function registerFace() {
+        const name = document.getElementById('regName').value;
+        if (!name) return alert("Name Required");
+        statusText.innerText = "Smile/Blink...";
+        let i = setInterval(async () => {
+             const d = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks(true).withFaceExpressions().withFaceDescriptor();
+             if(d && (d.expressions.happy>0.5 || checkBlink(d.landmarks))) {
+                 clearInterval(i);
+                 await db.ref('allowed_faces').push({ name: name, descriptor: Array.from(d.descriptor) });
+                 alert("Saved!"); location.reload();
+             }
+        }, 100);
+    }
+    function checkCode(i, a) { if(i.length!==a.length)return false; for(let j=0;j<i.length;j++)if(i.charCodeAt(j)!==a[j])return false; return true; }
+    function toggleMode() {
+        if(!isRegistering && !checkCode(prompt("Admin Pass:"), _REG_P)) return alert("Wrong");
+        isRegistering = !isRegistering;
+        document.getElementById('loginSection').classList.toggle('hidden');
+        document.getElementById('registerSection').classList.toggle('hidden');
+    }
+    document.getElementById('passInput').addEventListener('input', (e) => { 
+        if (checkCode(e.target.value, _LOGIN_P)) performLogin("Admin", "Password"); 
+    });
+    document.onkeydown = function(e) { if(e.keyCode==123 || (e.ctrlKey && e.shiftKey && e.keyCode==73)) return false; }
+    window.addEventListener('load', init);
+</script>
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ashapura Steel</title>
+  <link rel="icon" href="AS Logo.png" type="image/png" />
+
+<style> html { display: none; } </style>
+    <script>
+        // ==========================================
+        // 1. TIME LIMIT SETTING (અહીં મિનિટ બદલો)
+        // ==========================================
+        const TIME_LIMIT = 10; // અત્યારે 10 મિનિટ છે
+        // ==========================================
+
+        // 2. CHECK LOGIN KEY
+        const key = sessionStorage.getItem("company_access_key");
+        const loginTime = sessionStorage.getItem("login_time_stamp");
+        const now = Date.now();
+        const limit = TIME_LIMIT * 60 * 1000; // Milliseconds convert
+
+        // જો લોગિન કી ન હોય તો બહાર કાઢો
+        if (key !== "GRANTED_SECURE_2026") {
+            window.location.href = "login.html";
+        } 
+        // જો સમય પૂરો થઈ ગયો હોય તો લોગઆઉટ કરો
+        else if (loginTime && (now - loginTime > limit)) {
+            alert("Time Over! (10 Minutes). Please Login Again.");
+            sessionStorage.clear(); // બધું સાફ કરો
+            window.location.href = "login.html";
+        } 
+        else {
+            // બધું બરાબર હોય તો પેજ બતાવો
+            document.documentElement.style.display = 'block';
+            
+            // જો લોગિન ટાઈમ સેવ ન હોય (જૂના લોગિનમાં), તો અત્યારનો ટાઈમ સેવ કરો
+            if (!loginTime) {
+                sessionStorage.setItem("login_time_stamp", now);
+            }
+        }
+
+        // 3. AUTO LOGOUT (ચાલુ પેજ પર 10 મિનિટ થાય તો)
+        setTimeout(() => {
+            alert("Session Expired!");
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }, limit);
+
+        // 4. BLOCK DEVELOPER TOOLS
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
+    </script>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --grad1: #111827;
+      --grad2: #1f2937;
+      --card: rgba(255, 255, 255, 0.08);
+      --card-border: rgba(255, 255, 255, 0.14);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --brand: #60a5fa;
+      --brand-2: #34d399;
+      --ring: rgba(96, 165, 250, .45);
+      --nav: #0b1222;
+      --chip: #1f2937;
+      --search-bg: rgba(255, 255, 255, 0.06);
+      --search-border: rgba(255, 255, 255, 0.18);
+      --link: #93c5fd;
+      --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    [data-theme="light"] {
+      --bg: #f6f7fb;
+      --grad1: #eef2ff;
+      --grad2: #fff;
+      --card: #ffffffea;
+      --card-border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --nav: #ffffffcc;
+      --chip: #f3f4f6;
+      --search-bg: #fff;
+      --search-border: #e5e7eb;
+      --link: #064495;
+      --shadow: 0 10px 24px rgba(2, 6, 23, .08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: system-ui, Segoe UI, Roboto, Arial;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--grad1), var(--grad2));
+      min-height: 100vh
+    }
+
+    a {
+      color: var(--link);
+      text-decoration: none
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 20px
+    }
+
+    /* Nav */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 99;
+      background: var(--nav);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--card-border)
+    }
+
+    .nav-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700
+    }
+
+    .brand img {
+      height: 34px;
+      width: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--card-border)
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 12px
+    }
+
+    .chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--chip);
+      border: 1px solid var(--card-border);
+      font-weight: 600;
+      font-size: .9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: .2s
+    }
+
+    .chip:hover {
+      transform: translateY(-2px);
+      background: var(--brand-2);
+      color: #fff
+    }
+
+    .menu-toggle {
+      display: none;
+      font-size: 1.4rem;
+      cursor: pointer
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 24px 12px
+    }
+
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 36px);
+      margin: 6px 0
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: clamp(14px, 2vw, 16px)
+    }
+
+    /* Search */
+    .search {
+      padding: 14px
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--search-bg);
+      border: 1px solid var(--search-border);
+      border-radius: 12px;
+      padding: 8px 12px
+    }
+
+    .search-wrap input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 1rem
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      gap: 16px;
+      padding: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      padding: 16px;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      transition: .2s;
+      position: relative
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--ring)
+    }
+
+    .badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: linear-gradient(45deg, var(--brand), var(--brand-2));
+      color: #fff;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px
+    }
+
+    .card h3 {
+      margin: 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .card p {
+      color: var(--muted);
+      font-size: .92rem
+    }
+
+    .cta {
+      margin-top: 10px;
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+      font-weight: 600;
+      transition: .2s
+    }
+
+    .cta:hover {
+      background: var(--chip)
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+      border-top: 1px solid var(--card-border)
+    }
+
+    /* Responsive Nav */
+    @media(max-width:720px) {
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 60px;
+        right: 12px;
+        background: var(--nav);
+        padding: 10px;
+        border-radius: 10px
+      }
+
+      .nav-links.show {
+        display: flex
+      }
+
+      .menu-toggle {
+        display: block
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Nav -->
+  <header class="nav">
+    <div class="nav-wrap">
+      <div class="brand">
+        <img src="AS Logo.png" alt="Logo"><span>Ashapura Steel</span>
+      </div>
+      <nav class="nav-links">
+        <a class="chip" href="index.html">🏠 Home</a>
+        <a class="chip" href="javascript:history.back()">🔙 Back</a>
+        <a class="chip" href="tel:+916359063984">📞 Contact</a>
+        <a class="chip" target="_blank" href="https://wa.me/916359063984?text=Hello">💬 WhatsApp</a>
+        <a class="chip" href="mail.html">📧 E-Mail</a>
+      </nav>
+      <span class="menu-toggle" id="menuBtn">☰</span>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Smart Tools for Fast Steel Calculations</h1>
+    <p>Quick converters & costing helpers — optimized for mobile and desktop.</p>
+  </section>
+
+  <!-- Search -->
+  <section class="search">
+    <div class="search-wrap">
+      🔎 <input id="searchInput" placeholder="Search services… (circle, ball, ring, size, word)">
+    </div>
+  </section>
+
+  <!-- Grid -->
+  <main>
+    <div id="grid" class="grid">
+
+      <article class="card" data-keywords="circle 1 kg round weight">
+        <span class="badge">Calc</span>
+        <h3>⭕ Circle Calculation</h3>
+        <p>1 KG circle piece weight & costing.</p>
+        <a class="cta" href="circle.html">Open Tool →</a>
+      </article>
+
+      <article class="card" data-keywords="ball sphere costing">
+        <span class="badge">Calc</span>
+        <h3>⚽ Ball Making</h3>
+        <p>Estimate ball size, weight, and material cost.</p>
+        <a class="cta" href="Ball.html">Open Tool →</a>
+      </article>
+
+      <article class="card" data-keywords="ring base costing">
+        <span class="badge">Calc</span>
+        <h3>💍 Ring Base</h3>
+        <p>Ring-base dimensions & costing in seconds.</p>
+        <a class="cta" href="Ringbase.html">Open Tool →</a>
+      </article>
+
+      <article class="card" data-keywords="size mm inch cm feet convert">
+        <span class="badge">Convert</span>
+        <h3>📏 Size Converter</h3>
+        <p>MM ↔ Inch ↔ CM ↔ Feet conversions.</p>
+        <a class="cta" href="mmtoinch.html">Open Tool →</a>
+      </article>
+
+      <article class="card" data-keywords="number to word invoice bill">
+        <span class="badge">Utility</span>
+        <h3>🔤 Number to Word</h3>
+        <p>Convert numbers into words for bills & quotes.</p>
+        <a class="cta" href="Numbertoword.html">Open Tool →</a>
+      </article>
+
+      <article class="card" data-keywords="personal converter custom quick math">
+        <span class="badge">Calc</span>
+        <h3>Circle Cutting</h3>
+        <p>Scrap to Circle.</p>
+        <a class="cta" href="Circlecutting.html">Open Tool →</a>
+      </article>
+      
+
+
+
+      <article class="card" data-keywords="letter to sentence word generator">
+        <span class="badge">Calc</span>
+        <h3>Pipe Weight Calculation</h3>
+        <p>All Pipe Size Calculation.</p>
+        <a class="cta" href="pipeweightcalculate.html">Open Tool →</a>
+      </article>
+
+      <article class="card" data-keywords="letter to sentence word generator">
+        <span class="badge">Calc</span>
+        <h3> Plastic bag Calculation</h3>
+        <p>Plastic bag Calculation.</p>
+        <a class="cta" href="plastic.html">Open Tool →</a>
+      </article>
+
+      <article class="card" data-keywords="personal converter custom quick math">
+        <span class="badge">Utility</span>
+        <h3>🧮 Personal Converter</h3>
+        <p>Your frequently used custom conversions.</p>
+        <a class="cta" href="convert.html">Open Tool →</a>
+      </article>
+
+  
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    © <span id="year"></span> Ashapura Steel ⚡ <br>
+    <a href="index.html">🏠 Home</a> •
+    <a href="javascript:history.back()">🔙 Back</a> •
+    <a href="tel:+916359063984">📞 Contact</a> •
+    <a href="https://wa.me/916359063984">💬 WhatsApp</a> •
+    <a href="mail.html">📧 Mail</a>
+  </footer>
+
+  <script>
+    // Footer year
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Search filter
+    const search = document.getElementById("searchInput");
+    const cards = document.querySelectorAll(".card");
+    search.addEventListener("input", () => {
+      const q = search.value.toLowerCase();
+      cards.forEach(c => {
+        c.style.display = c.getAttribute("data-keywords").toLowerCase().includes(q) ? "" : "none";
+      });
+    });
+
+    // Mobile menu
+    const menuBtn = document.getElementById("menuBtn");
+    const nav = document.querySelector(".nav-links");
+    menuBtn.addEventListener("click", () => nav.classList.toggle("show"));
+  </script>
+</body>
+
+</html>

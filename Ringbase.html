@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ashapura Steel - Ring Master</title>
+  <style> html { display: none; } </style>
+    <script>
+        // ==========================================
+        // 1. TIME LIMIT SETTING (અહીં મિનિટ બદલો)
+        // ==========================================
+        const TIME_LIMIT = 10; // અત્યારે 10 મિનિટ છે
+        // ==========================================
+
+        // 2. CHECK LOGIN KEY
+        const key = sessionStorage.getItem("company_access_key");
+        const loginTime = sessionStorage.getItem("login_time_stamp");
+        const now = Date.now();
+        const limit = TIME_LIMIT * 60 * 1000; // Milliseconds convert
+
+        // જો લોગિન કી ન હોય તો બહાર કાઢો
+        if (key !== "GRANTED_SECURE_2026") {
+            window.location.href = "login.html";
+        } 
+        // જો સમય પૂરો થઈ ગયો હોય તો લોગઆઉટ કરો
+        else if (loginTime && (now - loginTime > limit)) {
+            alert("Time Over! (10 Minutes). Please Login Again.");
+            sessionStorage.clear(); // બધું સાફ કરો
+            window.location.href = "login.html";
+        } 
+        else {
+            // બધું બરાબર હોય તો પેજ બતાવો
+            document.documentElement.style.display = 'block';
+            
+            // જો લોગિન ટાઈમ સેવ ન હોય (જૂના લોગિનમાં), તો અત્યારનો ટાઈમ સેવ કરો
+            if (!loginTime) {
+                sessionStorage.setItem("login_time_stamp", now);
+            }
+        }
+
+        // 3. AUTO LOGOUT (ચાલુ પેજ પર 10 મિનિટ થાય તો)
+        setTimeout(() => {
+            alert("Session Expired!");
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }, limit);
+
+        // 4. BLOCK DEVELOPER TOOLS
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
+    </script>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #334155;
+      --border: #cbd5e1;
+      --success: #166534;
+      --success-bg: #dcfce7;
+      --danger: #991b1b;
+      --danger-bg: #fee2e2;
+      --warning: #fbbf24;
+      --warning-text: #92400e;
+    }
+
+    body.dark {
+      --primary: #60a5fa;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f1f5f9;
+      --border: #334155;
+      --success: #4ade80;
+      --success-bg: rgba(22, 101, 52, 0.3);
+      --danger: #f87171;
+      --danger-bg: rgba(153, 27, 27, 0.3);
+      --warning: #d97706;
+      --warning-text: #fbbf24;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 80px;
+    }
+
+    /* NAV & STATUS */
+    nav {
+      background: var(--card-bg);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    nav div {
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--primary);
+    }
+
+    #status-badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: bold;
+      background: #e2e8f0;
+      color: #64748b;
+      transition: all 0.3s;
+    }
+
+    .st-saving {
+      background: #fff7ed !important;
+      color: #c2410c !important;
+    }
+
+    .st-saved {
+      background: #dcfce7 !important;
+      color: #166534 !important;
+    }
+
+    .st-loading {
+      background: #e0f2fe !important;
+      color: #0369a1 !important;
+    }
+
+    .st-unsaved {
+      background: #fee2e2 !important;
+      color: #991b1b !important;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 15px auto;
+      padding: 0 15px;
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+      border: 1px solid var(--border);
+      margin-bottom: 15px;
+    }
+
+    h3 {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      color: var(--text);
+      opacity: 0.7;
+      margin: 20px 0 10px 0;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 5px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      opacity: 0.9;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      font-size: 16px;
+      appearance: none;
+      transition: 0.2s;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* --- STYLISH TOGGLE SWITCH --- */
+    .save-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.03);
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      border: 1px solid var(--border);
+    }
+
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .switch-label {
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 28px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e1;
+      transition: .4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked+.slider {
+      background-color: var(--success);
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(22px);
+    }
+
+    .manual-save-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: none;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .manual-save-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Labor Rows */
+    .labor-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .labor-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      width: 30%;
+    }
+
+    .labor-inputs {
+      display: flex;
+      width: 70%;
+      gap: 5px;
+    }
+
+    .labor-inputs input {
+      width: 65%;
+      font-weight: bold;
+    }
+
+    .labor-inputs select {
+      width: 35%;
+      padding: 0 5px;
+      font-size: 0.8rem;
+      background: rgba(0, 0, 0, 0.05);
+      text-align: center;
+    }
+
+    /* Results */
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    .highlight-result {
+      background: rgba(37, 99, 235, 0.08);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+      border: 1px dashed var(--primary);
+    }
+
+    .highlight-result .main {
+      font-size: 1.2rem;
+      color: var(--primary);
+      font-weight: 800;
+    }
+
+    /* HISTORY LIST */
+    .history-container {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .history-item:hover {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    .history-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .history-meta {
+      font-size: 0.75rem;
+      color: #666;
+    }
+
+    .del-btn {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0 10px;
+    }
+
+    /* Batch */
+    .batch-card {
+      border: 1px solid var(--primary);
+      background: rgba(37, 99, 235, 0.02);
+    }
+
+    .material-balance {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 5px;
+      background: rgba(0, 0, 0, 0.05);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .mb-item {
+      text-align: center;
+    }
+
+    .mb-val {
+      font-weight: bold;
+      font-size: 0.95rem;
+      display: block;
+    }
+
+    .breakdown-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 10px 0;
+      width: 100%;
+      text-align: left;
+    }
+
+    /* Profit */
+    .profit-box {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid;
+    }
+
+    .p-success {
+      background: var(--success-bg);
+      color: var(--success);
+      border-color: var(--success);
+    }
+
+    .p-danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .suggestion-box {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      background-color: var(--warning-bg);
+      color: var(--warning-text);
+      border: 1px dashed var(--warning);
+      font-size: 0.9rem;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn-action {
+      flex: 1;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-img {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    }
+
+    .btn-pdf {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #toast {
+      visibility: hidden;
+      min-width: 250px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 8px;
+      padding: 12px;
+      position: fixed;
+      z-index: 1000;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      font-size: 0.9rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    #toast.show {
+      visibility: visible;
+      animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    }
+
+    @keyframes fadein {
+      from {
+        bottom: 0;
+        opacity: 0;
+      }
+
+      to {
+        bottom: 30px;
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeout {
+      from {
+        bottom: 30px;
+        opacity: 1;
+      }
+
+      to {
+        bottom: 0;
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <div>Ashapura Ring</div>
+    <div id="status-badge">Ready</div>
+  </nav>
+
+  <div class="container" id="captureArea">
+
+    <div class="card" style="padding: 15px; border-left: 5px solid var(--primary);">
+
+      <div class="save-controls">
+        <label class="switch-container">
+          <div class="switch">
+            <input type="checkbox" id="auto_save_toggle" checked onchange="toggleSaveMode()">
+            <span class="slider"></span>
+          </div>
+          <span class="switch-label">Auto-Save Data</span>
+        </label>
+        <button id="manual_save_btn" class="manual-save-btn" onclick="saveToFirebase(true)">Save Now 💾</button>
+      </div>
+
+      <label style="margin-bottom: 4px; font-size: 0.8rem; color: var(--primary);">Ring Name / File Name:</label>
+      <input type="text" id="ring_name" placeholder=" "
+        style="border:none; border-bottom:1px solid var(--border); border-radius:0; padding:5px 0; font-weight:bold; font-size:1.2rem;">
+
+      <div style="margin-top:10px;">
+        <div
+          style="font-size:0.8rem; font-weight:bold; color:var(--text); cursor:pointer; display:flex; justify-content:space-between;"
+          onclick="toggleHistory()">
+          <span>📂 View Saved List (History)</span>
+          <span id="history_icon">▼</span>
+        </div>
+        <div id="history_list" class="history-container hidden">
+          <div style="text-align:center; padding:10px; color:#999;">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Dimensions</h3>
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label>Circle Size</label>
+          <div style="display:flex; gap:5px;">
+            <input type="number" id="diameter_value" placeholder="0" inputmode="decimal"
+              style="font-weight:bold; border-color:var(--primary);">
+            <select id="diameter_unit" style="width:75px;">
+              <option value="mm">mm</option>
+              <option value="inch">in</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label>Thickness (mm)</label>
+          <input type="number" id="thickness" inputmode="decimal"
+            style="font-weight:bold; border-color:var(--primary);">
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div>
+          <label>Hole Shape</label>
+          <select id="hole_shape" onchange="toggleHoleFields()">
+            <option value="round">Round</option>
+            <option value="square">Square</option>
+            <option value="rectangle">Rect</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="round_fields" style="margin-top:12px;">
+        <label>Hole Diameter</label>
+        <div style="display:flex; gap:5px;">
+          <input type="number" id="hole_diameter" inputmode="decimal">
+          <select id="hole_unit_round" style="width:75px;">
+            <option value="mm">mm</option>
+            <option value="inch">in</option>
+          </select>
+        </div>
+      </div>
+      <div id="square_fields" class="hidden" style="margin-top:12px;">
+        <label>Side Length</label>
+        <div style="display:flex; gap:5px;">
+          <input type="number" id="side_length" inputmode="decimal">
+          <select id="hole_unit_square" style="width:75px;">
+            <option value="mm">mm</option>
+            <option value="inch">in</option>
+          </select>
+        </div>
+      </div>
+      <div id="rectangle_fields" class="hidden" style="margin-top:12px;">
+        <div class="grid-2">
+          <div><label>Length</label><input type="number" id="length" inputmode="decimal"></div>
+          <div>
+            <label>Width</label>
+            <div style="display:flex; gap:5px;">
+              <input type="number" id="width" inputmode="decimal">
+              <select id="hole_unit_rectangle" style="width:60px;">
+                <option value="mm">mm</option>
+                <option value="inch">in</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Rates & Labor</h3>
+    <div class="card">
+      <div class="grid-2" style="margin-bottom:15px;">
+        <div><label>Steel Price (₹)</label><input type="number" id="price_per_kg" inputmode="decimal"></div>
+        <div><label>Scrap Price (₹)</label><input type="number" id="scrap_price" inputmode="decimal"></div>
+      </div>
+
+      <label
+        style="margin-top:10px; opacity:1; color:var(--primary); border-bottom:1px solid #eee; padding-bottom:5px;">Labor
+        Costs (Select Unit)</label>
+
+      <div style="margin-top:10px;">
+        <div class="labor-row">
+          <span class="labor-label">Press</span>
+          <div class="labor-inputs">
+            <input type="number" id="press_cost" placeholder="0" inputmode="decimal">
+            <select id="press_unit" onchange="calcTotal()">
+              <option value="pc">/Pc</option>
+              <option value="kg">/Kg</option>
+            </select>
+          </div>
+        </div>
+        <div class="labor-row">
+          <span class="labor-label">Fress</span>
+          <div class="labor-inputs">
+            <input type="number" id="fress_cost" placeholder="0" inputmode="decimal">
+            <select id="fress_unit" onchange="calcTotal()">
+              <option value="pc">/Pc</option>
+              <option value="kg">/Kg</option>
+            </select>
+          </div>
+        </div>
+        <div class="labor-row">
+          <span class="labor-label">Hole</span>
+          <div class="labor-inputs">
+            <input type="number" id="hole_cost" placeholder="0" inputmode="decimal">
+            <select id="hole_unit" onchange="calcTotal()">
+              <option value="pc">/Pc</option>
+              <option value="kg">/Kg</option>
+            </select>
+          </div>
+        </div>
+        <div class="labor-row">
+          <span class="labor-label">Buffing</span>
+          <div class="labor-inputs">
+            <input type="number" id="buffing_cost" placeholder="0" inputmode="decimal">
+            <select id="buffing_unit" onchange="calcTotal()">
+              <option value="pc">/Pc</option>
+              <option value="kg">/Kg</option>
+            </select>
+          </div>
+        </div>
+        <div class="labor-row">
+          <span class="labor-label">Other</span>
+          <div class="labor-inputs">
+            <input type="number" id="other_cost" placeholder="0" inputmode="decimal">
+            <select id="other_unit" onchange="calcTotal()">
+              <option value="pc">/Pc</option>
+              <option value="kg">/Kg</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="background: var(--bg);">
+      <div class="result-row"><span>Raw Weight:</span><span id="raw_circle_weight" style="color:#64748b;">0.000
+          kg</span></div>
+      <div class="result-row"><span>Final Weight:</span><span id="final_ring_weight" style="font-weight:bold;">0.000
+          kg</span></div>
+      <div class="result-row"><span>Hole Scrap:</span><span id="hole_weight" style="color:#991b1b;">0.000 kg</span>
+      </div>
+
+      <div style="margin-top:12px; border-top:1px solid #ddd; padding-top:10px;">
+        <div class="result-row" style="background: #eff6ff; padding: 5px; border-radius: 4px;">
+          <span style="color:#1e40af;">1 Kg Raw Yield:</span>
+          <span id="rings_per_kg_raw" style="color:#1e40af; font-size:1.1rem;">0 pcs</span>
+        </div>
+        <div class="result-row" style="margin-top:8px; opacity:0.7;">
+          <span>1 Kg Finished Packing:</span>
+          <span id="rings_per_kg_finished">0 pcs</span>
+        </div>
+      </div>
+
+      <div class="highlight-result">
+        <div class="result-row">
+          <span class="main" style="font-size:1rem; opacity:0.8; color:var(--text);">Cost per Ring:</span>
+          <span id="result" class="main">₹0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>Batch & Sales</h3>
+    <div class="card batch-card">
+
+      <div class="mode-switch">
+        <label style="font-size:0.8rem;">Calculate By:</label>
+        <select id="calc_mode" onchange="toggleMode()" style="border:none; padding:5px 0; font-weight:bold;">
+          <option value="weight">1. Total Raw Weight (kg)</option>
+          <option value="pieces">2. Target Quantity (Pieces)</option>
+          <option value="finished_weight">3. Target Finished Weight (kg)</option>
+        </select>
+      </div>
+
+      <div id="weight_input_group">
+        <label>Total Raw Circle Weight (kg)</label>
+        <input type="number" id="batch_weight" placeholder="100" inputmode="decimal"
+          style="font-size:1.1rem; font-weight:bold;">
+      </div>
+
+      <div id="pieces_input_group" class="hidden">
+        <label>Target Quantity (Pieces)</label>
+        <input type="number" id="target_pieces" placeholder="5000" inputmode="decimal"
+          style="font-size:1.1rem; font-weight:bold;">
+      </div>
+
+      <div id="finished_weight_group" class="hidden">
+        <label>Target Finished Weight (kg)</label>
+        <input type="number" id="target_finished_weight" placeholder="100" inputmode="decimal"
+          style="font-size:1.1rem; font-weight:bold; color:#166534;">
+      </div>
+
+      <div class="grid-2" style="margin-top:12px;">
+        <div><label>Wastage %</label><input type="number" id="wastage_percent" placeholder="%" inputmode="decimal">
+        </div>
+        <div><label>Wastage kg</label><input type="number" id="wastage_kg" placeholder="kg" inputmode="decimal"></div>
+      </div>
+
+      <div
+        style="background: rgba(0,0,0,0.04); padding:10px; border-radius:8px; margin-top:15px; border:1px solid var(--border);">
+        <div class="grid-2">
+          <div>
+            <label>Sale Unit</label>
+            <select id="sale_unit" onchange="calcTotal()">
+              <option value="piece">Per Piece</option>
+              <option value="kg">Per Kg</option>
+            </select>
+          </div>
+          <div><label>Margin %</label><input type="number" id="target_margin" placeholder="" inputmode="decimal">
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <label>Selling Price (Rate)</label>
+          <input type="number" id="sale_price" inputmode="decimal" style="font-weight:bold;">
+        </div>
+        <div id="suggestion_output" class="hidden"></div>
+      </div>
+
+      <div id="batch_output" style="margin-top:20px;">
+        <div style="text-align:center; color:#888; padding:20px;">Enter details above...</div>
+      </div>
+    </div>
+
+    <div class="action-group" data-html2canvas-ignore="true">
+      <button class="btn-action btn-img" onclick="downloadImage()">📸 Image</button>
+      <button class="btn-action btn-pdf" onclick="downloadPDF()">📄 PDF</button>
+    </div>
+
+    <div style="text-align:center; margin-top:20px; font-size:0.8rem; opacity:0.5;">
+      <span id="date_display"></span>
+    </div>
+
+    <div id="toast">Data Loaded!</div>
+
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const getVal = id => parseFloat($(id).value) || 0;
+    const convertToMm = (val, unit) => unit === "inch" ? val * 25.4 : val;
+
+    // === FIREBASE CONFIG (YOURS) ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyAu7naZXlBRNh5VHYvNOi0zB6jPS3HMltM",
+      authDomain: "kalpesh-gelot.firebaseapp.com",
+      databaseURL: "https://kalpesh-gelot-default-rtdb.firebaseio.com",
+      projectId: "kalpesh-gelot",
+      storageBucket: "kalpesh-gelot.firebasestorage.app",
+      messagingSenderId: "417313613277",
+      appId: "1:417313613277:web:b1ff2a3712195467694234",
+      measurementId: "G-34M8WJ5ZY5"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
+    let isBreakdownOpen = false;
+    let saveTimeout;
+    let loadTimeout;
+
+    // FIELDS LIST
+    const allFields = [
+      "ring_name", "diameter_value", "diameter_unit", "thickness",
+      "hole_shape", "hole_diameter", "hole_unit_round", "side_length", "hole_unit_square", "length", "width", "hole_unit_rectangle",
+      "price_per_kg", "scrap_price",
+      "press_cost", "press_unit", "fress_cost", "fress_unit", "hole_cost", "hole_unit", "buffing_cost", "buffing_unit", "other_cost", "other_unit",
+      "wastage_percent", "target_margin", "sale_unit", "sale_price"
+    ];
+
+    // --- DB UTILS ---
+    function getSafeKey(val) {
+      return val.trim().toLowerCase().replace(/[.#$\[\]\/]/g, '_');
+    }
+
+    function showToast(msg) {
+      const x = $("toast"); x.innerText = msg; x.className = "show";
+      setTimeout(function () { x.className = x.className.replace("show", ""); }, 3000);
+    }
+
+    function setStatus(state) {
+      const el = $("status-badge");
+      if (state === "saving") { el.textContent = "Saving..."; el.className = "st-saving"; }
+      else if (state === "saved") { el.textContent = "Saved ✔"; el.className = "st-saved"; }
+      else if (state === "loading") { el.textContent = "Loading..."; el.className = "st-loading"; }
+      else if (state === "unsaved") { el.textContent = "Unsaved Changes"; el.className = "st-unsaved"; }
+      else { el.textContent = "Ready"; el.className = ""; }
+    }
+
+    function toggleSaveMode() {
+      const auto = $("auto_save_toggle").checked;
+      $("manual_save_btn").style.display = auto ? "none" : "block";
+      if (auto) triggerSave();
+    }
+
+    // --- HISTORY LIST LOGIC ---
+    function toggleHistory() {
+      const list = $("history_list");
+      if (list.classList.contains("hidden")) {
+        list.classList.remove("hidden");
+        fetchHistory();
+      } else {
+        list.classList.add("hidden");
+      }
+    }
+
+    function fetchHistory() {
+      db.ref('data').once('value').then((snapshot) => {
+        const list = $("history_list");
+        list.innerHTML = "";
+        const data = snapshot.val();
+
+        if (!data) {
+          list.innerHTML = "<div style='padding:10px;text-align:center;'>No saved items found.</div>";
+          return;
+        }
+
+        Object.keys(data).forEach(key => {
+          const item = data[key];
+          const displayName = item.ring_name || key;
+          const div = document.createElement("div");
+          div.className = "history-item";
+          div.innerHTML = `
+                    <div onclick="loadByNameFromList('${item.ring_name}')">
+                        <div class="history-name">${displayName}</div>
+                        <div class="history-meta">Dia: ${item.diameter_value}${item.diameter_unit} | Thick: ${item.thickness}</div>
+                    </div>
+                    <button class="del-btn" onclick="deleteItem('${key}')">×</button>
+                `;
+          list.appendChild(div);
+        });
+      });
+    }
+
+    function loadByNameFromList(name) {
+      $("ring_name").value = name;
+      toggleHistory();
+      loadByName();
+    }
+
+    function deleteItem(key) {
+      if (confirm("Delete this item permanently?")) {
+        db.ref('data/' + key).remove();
+        fetchHistory();
+      }
+    }
+
+    // --- SAVE LOGIC ---
+    function saveToFirebase(manual = false) {
+      const auto = $("auto_save_toggle").checked;
+      if (!auto && !manual) { setStatus("unsaved"); return; }
+
+      const name = $("ring_name").value.trim();
+      const dia = getVal("diameter_value");
+      const thick = getVal("thickness");
+      const diaUnit = $("diameter_unit").value;
+
+      if (!name) return;
+
+      setStatus("saving");
+      const data = {};
+      allFields.forEach(id => data[id] = $(id).value);
+      data.lastUpdated = new Date().toISOString();
+
+      const nameKey = getSafeKey(name);
+      db.ref('data/' + nameKey).set(data, (error) => {
+        if (!error) {
+          // Save lookup
+          if (dia > 0 && thick > 0) {
+            const sizeKey = `${dia}_${diaUnit}_${thick}`.replace(/[.]/g, '-');
+            db.ref('lookup/' + sizeKey).set(nameKey);
+          }
+          setStatus("saved");
+          if (manual) showToast("Data Saved Successfully!");
+          setTimeout(() => setStatus("ready"), 2000);
+        }
+      });
+    }
+
+    function triggerSave() {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => saveToFirebase(false), 1500);
+    }
+
+    // --- LOAD LOGIC ---
+    function loadByName() {
+      const name = $("ring_name").value.trim();
+      if (!name) return;
+
+      setStatus("loading");
+      const nameKey = getSafeKey(name);
+
+      db.ref('data/' + nameKey).once('value').then((snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          populateData(data);
+          showToast("Loaded: " + name);
+        } else {
+          setStatus("ready");
+        }
+      });
+    }
+
+    function loadBySize() {
+      const dia = getVal("diameter_value");
+      const thick = getVal("thickness");
+      const unit = $("diameter_unit").value;
+
+      if (dia <= 0 || thick <= 0) return;
+
+      setStatus("loading");
+      const sizeKey = `${dia}_${unit}_${thick}`.replace(/[.]/g, '-');
+
+      db.ref('lookup/' + sizeKey).once('value').then((snapshot) => {
+        const fileNameKey = snapshot.val();
+        if (fileNameKey) {
+          db.ref('data/' + fileNameKey).once('value').then((snap) => {
+            const data = snap.val();
+            if (data) {
+              populateData(data);
+              showToast("Loaded by Size!");
+            }
+          });
+        } else {
+          setStatus("ready");
+        }
+      });
+    }
+
+    function populateData(data) {
+      allFields.forEach(id => {
+        if (data[id] !== undefined) $(id).value = data[id];
+      });
+      toggleHoleFields();
+      calcTotal();
+      setStatus("saved");
+    }
+
+    function triggerLoadByName() {
+      if (loadTimeout) clearTimeout(loadTimeout);
+      loadTimeout = setTimeout(loadByName, 800);
+    }
+
+    function triggerLoadBySize() {
+      if (loadTimeout) clearTimeout(loadTimeout);
+      loadTimeout = setTimeout(loadBySize, 800);
+    }
+
+    // --- LISTENERS ---
+    $("ring_name").addEventListener("input", triggerLoadByName);
+
+    $("diameter_value").addEventListener("input", () => { calcTotal(); triggerLoadBySize(); triggerSave(); });
+    $("thickness").addEventListener("input", () => { calcTotal(); triggerLoadBySize(); triggerSave(); });
+    $("diameter_unit").addEventListener("change", () => { calcTotal(); triggerLoadBySize(); triggerSave(); });
+
+    allFields.forEach(id => {
+      const el = $(id);
+      if (el && id !== "ring_name" && id !== "diameter_value" && id !== "thickness") {
+        el.addEventListener("input", () => { calcTotal(); triggerSave(); });
+        el.addEventListener("change", () => { calcTotal(); triggerSave(); });
+      }
+    });
+
+    $("wastage_percent").addEventListener("input", () => {
+      const mode = $("calc_mode").value;
+      const pct = getVal("wastage_percent");
+      if (mode === "weight") {
+        const b = getVal("batch_weight");
+        if (b > 0) $("wastage_kg").value = ((b * pct) / 100).toFixed(3);
+      }
+      calcTotal(); triggerSave();
+    });
+
+    $("wastage_kg").addEventListener("input", () => {
+      const mode = $("calc_mode").value;
+      const kg = getVal("wastage_kg");
+      if (mode === "weight") {
+        const b = getVal("batch_weight");
+        if (b > 0) $("wastage_percent").value = ((kg / b) * 100).toFixed(2);
+      }
+      calcTotal(); triggerSave();
+    });
+
+
+    // --- CALCULATIONS ---
+
+    function toggleHoleFields() {
+      const shape = $("hole_shape").value;
+      ["round", "square", "rectangle"].forEach(t => $(t + "_fields").classList.add("hidden"));
+      $(shape + "_fields").classList.remove("hidden");
+      calcTotal();
+    }
+
+    function toggleMode() {
+      const mode = $("calc_mode").value;
+      $("weight_input_group").classList.add("hidden");
+      $("pieces_input_group").classList.add("hidden");
+      $("finished_weight_group").classList.add("hidden");
+
+      if (mode === "weight") $("weight_input_group").classList.remove("hidden");
+      else if (mode === "pieces") $("pieces_input_group").classList.remove("hidden");
+      else if (mode === "finished_weight") $("finished_weight_group").classList.remove("hidden");
+
+      calcTotal();
+    }
+
+    window.toggleBreakdown = function () {
+      isBreakdownOpen = !isBreakdownOpen;
+      calcTotal();
+    }
+
+    function getFileName(ext) {
+      let name = $("ring_name").value.trim();
+      if (!name) name = "Ring_Quotation";
+      const safeName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      return `${safeName}.${ext}`;
+    }
+
+    function calcTotal() {
+      try {
+        const d = convertToMm(getVal("diameter_value"), $("diameter_unit").value);
+        const t = getVal("thickness");
+        let rawW = 0;
+
+        if (d > 0 && t > 0) {
+          const r = (d / 10) / 2;
+          const h = t / 10;
+          const volume = Math.PI * r * r * h;
+          rawW = volume * 7.93 / 1000;
+        }
+
+        let holeVol = 0;
+        const shape = $("hole_shape").value;
+        const h_t = t / 10;
+        const count = 1;
+
+        if (shape === "round") {
+          const hd = convertToMm(getVal("hole_diameter"), $("hole_unit_round").value);
+          const hr = (hd / 10) / 2;
+          holeVol = Math.PI * hr * hr * h_t;
+        } else if (shape === "square") {
+          const s = convertToMm(getVal("side_length"), $("hole_unit_square").value) / 10;
+          holeVol = s * s * h_t;
+        } else if (shape === "rectangle") {
+          const l = convertToMm(getVal("length"), $("hole_unit_rectangle").value) / 10;
+          const w = convertToMm(getVal("width"), $("hole_unit_rectangle").value) / 10;
+          holeVol = l * w * h_t;
+        }
+
+        const holeW = (holeVol * count * 7.93) / 1000;
+        const finalW = Math.max(0, rawW - holeW);
+
+        // LABOR CONVERSION
+        const getLaborCost = (id, unitId, baseWeight) => {
+          const rate = getVal(id);
+          const unit = $(unitId).value;
+          if (unit === 'kg') return rate * baseWeight;
+          return rate;
+        };
+
+        const l_press = getLaborCost("press_cost", "press_unit", rawW);
+        const l_fress = getLaborCost("fress_cost", "fress_unit", rawW);
+        const l_hole = getLaborCost("hole_cost", "hole_unit", rawW);
+        const l_buff = getLaborCost("buffing_cost", "buffing_unit", finalW);
+        const l_other = getLaborCost("other_cost", "other_unit", finalW);
+
+        const totalLaborOne = l_press + l_fress + l_hole + l_buff + l_other;
+
+        const pp = getVal("price_per_kg");
+        const scrapRate = getVal("scrap_price");
+        const costOne = (rawW * pp) + totalLaborOne - (holeW * scrapRate);
+
+        $("raw_circle_weight").textContent = rawW.toFixed(3) + " kg";
+        $("final_ring_weight").textContent = finalW.toFixed(3) + " kg";
+        $("hole_weight").textContent = holeW.toFixed(3) + " kg";
+        $("result").textContent = "₹" + costOne.toFixed(2);
+
+        $("rings_per_kg_raw").textContent = rawW > 0 ? (1 / rawW).toFixed(2) + " pcs" : "0 pcs";
+        $("rings_per_kg_finished").textContent = finalW > 0 ? (1 / finalW).toFixed(2) + " pcs" : "0 pcs";
+
+        // BATCH CALCULATION
+        const mode = $("calc_mode").value;
+        const wastagePct = getVal("wastage_percent") || 0;
+
+        let totalRings = 0;
+        let inputRawWeight = 0;
+        let wastageKg = getVal("wastage_kg") || 0;
+
+        if (mode === "weight") {
+          inputRawWeight = getVal("batch_weight");
+          if (inputRawWeight > 0 && rawW > 0) {
+            const usableSteel = Math.max(0, inputRawWeight - wastageKg);
+            totalRings = Math.floor(usableSteel / rawW);
+          }
+        } else if (mode === "pieces") {
+          totalRings = getVal("target_pieces");
+          if (totalRings > 0 && rawW > 0) {
+            const netNeeded = totalRings * rawW;
+            if (wastagePct > 0) {
+              inputRawWeight = netNeeded / (1 - (wastagePct / 100));
+              wastageKg = inputRawWeight - netNeeded;
+              $("wastage_kg").value = wastageKg.toFixed(3);
+            } else {
+              inputRawWeight = netNeeded + wastageKg;
+            }
+          }
+        } else if (mode === "finished_weight") {
+          const targetFin = getVal("target_finished_weight");
+          if (targetFin > 0 && finalW > 0) {
+            totalRings = Math.ceil(targetFin / finalW);
+            const netNeeded = totalRings * rawW;
+            if (wastagePct > 0) {
+              inputRawWeight = netNeeded / (1 - (wastagePct / 100));
+              wastageKg = inputRawWeight - netNeeded;
+              $("wastage_kg").value = wastageKg.toFixed(3);
+            } else {
+              inputRawWeight = netNeeded + wastageKg;
+            }
+          }
+        }
+
+        if (totalRings > 0 || inputRawWeight > 0) {
+          const totalMatCost = inputRawWeight * pp;
+          const totalBatchLabor = totalRings * totalLaborOne;
+          const totalHoleScrap = totalRings * holeW;
+          const totalScrapWeight = totalHoleScrap + wastageKg;
+          const totalScrapValue = totalScrapWeight * scrapRate;
+          const netBatchCost = totalMatCost + totalBatchLabor - totalScrapValue;
+
+          const netCostPerRing = totalRings > 0 ? netBatchCost / totalRings : 0;
+          const netCostPerKg = (totalRings > 0 && finalW > 0) ? netBatchCost / (totalRings * finalW) : 0;
+
+          // SALES
+          const saleUnit = $("sale_unit").value;
+          const salePrice = getVal("sale_price");
+          const targetMargin = getVal("target_margin");
+          const totalOutputWeight = totalRings * finalW;
+
+          let totalRevenue = 0;
+          let suggestedPrice = 0;
+          let costBase = 0;
+
+          if (saleUnit === "piece") {
+            totalRevenue = totalRings * salePrice;
+            costBase = netCostPerRing;
+          } else {
+            totalRevenue = totalOutputWeight * salePrice;
+            costBase = netCostPerKg;
+          }
+
+          if (targetMargin > 0) {
+            suggestedPrice = costBase + (costBase * (targetMargin / 100));
+            const unitLabel = saleUnit === "piece" ? "/ pc" : "/ kg";
+            const suggestionBox = $("suggestion_output");
+            suggestionBox.classList.remove("hidden");
+            suggestionBox.className = "suggestion-box";
+            suggestionBox.innerHTML = `
+                    <div style="font-weight:bold;">💡 Price Suggestion (${targetMargin}%)</div>
+                    <div style="font-size:1.1rem; font-weight:bold; color:var(--warning); margin-top:2px;">₹${suggestedPrice.toFixed(2)} ${unitLabel}</div>
+                    <div style="font-size:0.75rem; color:#666;">(Base Cost: ₹${costBase.toFixed(2)})</div>
+                 `;
+          } else {
+            $("suggestion_output").classList.add("hidden");
+          }
+
+          let profitHtml = "";
+          if (salePrice > 0) {
+            const profit = totalRevenue - netBatchCost;
+            const profitPercent = netBatchCost > 0 ? (profit / netBatchCost) * 100 : 0;
+            const pClass = profit >= 0 ? "p-success" : "p-danger";
+            const pLabel = profit >= 0 ? "Net Profit" : "Loss";
+
+            profitHtml = `
+                 <div class="profit-box ${pClass}">
+                    <div style="font-size:1.3rem; font-weight:bold;">${pLabel}: ₹${profit.toFixed(0)}</div>
+                    <div style="font-size:0.9rem;">(${profitPercent.toFixed(1)}%)</div>
+                 </div>`;
+          }
+
+          const breakdownClass = isBreakdownOpen ? "" : "hidden";
+          const btnText = isBreakdownOpen ? "Hide Labor Details" : "Show Labor Details";
+          const getUnitText = (id) => $(id).value === 'kg' ? '/Kg' : '/Pc';
+
+          const laborDetails = `
+                <div class="result-row"><span>Press (${getUnitText('press_unit')}):</span><span>₹${(totalRings * l_press).toFixed(0)}</span></div>
+                <div class="result-row"><span>Fress (${getUnitText('fress_unit')}):</span><span>₹${(totalRings * l_fress).toFixed(0)}</span></div>
+                <div class="result-row"><span>Hole (${getUnitText('hole_unit')}):</span><span>₹${(totalRings * l_hole).toFixed(0)}</span></div>
+                <div class="result-row"><span>Buffing (${getUnitText('buffing_unit')}):</span><span>₹${(totalRings * l_buff).toFixed(0)}</span></div>
+                <div class="result-row"><span>Other (${getUnitText('other_unit')}):</span><span>₹${(totalRings * l_other).toFixed(0)}</span></div>
+             `;
+
+          let infoHeader = "";
+          if (mode === "pieces" || mode === "finished_weight") {
+            infoHeader = `<div class="result-row" style="padding-bottom:10px; border-bottom:1px dashed #ccc;">
+                    <span>Required Raw Circle:</span><span style="color:var(--primary); font-size:1.1rem; font-weight:800;">${inputRawWeight.toFixed(1)} kg</span>
+                 </div>`;
+          }
+
+          $("batch_output").innerHTML = `
+                ${infoHeader}
+                <div class="material-balance">
+                    <div class="mb-item"><span class="mb-label">Raw In</span><span class="mb-val">${inputRawWeight.toFixed(1)}</span></div>
+                    <div class="mb-item"><span class="mb-label">Finish Out</span><span class="mb-val" style="color:var(--success);">${totalOutputWeight.toFixed(1)}</span></div>
+                    <div class="mb-item"><span class="mb-label">Scrap</span><span class="mb-val" style="color:var(--danger);">${totalScrapWeight.toFixed(1)}</span></div>
+                </div>
+                <div class="result-row" style="border-bottom:1px solid #ddd; padding-bottom:5px;">
+                    <span>Total Rings:</span><strong>${totalRings} pcs</strong>
+                </div>
+                <div class="result-row" style="margin-top:10px;"><span>Circle Cost:</span><span>₹${totalMatCost.toFixed(0)}</span></div>
+                <div class="result-row"><span>Total Labor:</span><span>₹${totalBatchLabor.toFixed(0)}</span></div>
+                <button class="breakdown-btn" onclick="toggleBreakdown()">${btnText} ▼</button>
+                <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:6px; margin-bottom:10px;" class="${breakdownClass}">${laborDetails}</div>
+                
+                <div class="result-row" style="margin-top:5px; background:rgba(220, 38, 38, 0.05); padding:5px; border-radius:4px;">
+                    <span style="color:#991b1b; font-size:0.85rem;">Total Scrap Gen:</span>
+                    <span style="color:#991b1b; font-weight:bold;">${totalScrapWeight.toFixed(2)} kg</span>
+                </div>
+
+                <div class="result-row" style="color:var(--danger); font-weight:bold;">
+                    <span>(-) Scrap Value:</span><span>- ₹${totalScrapValue.toFixed(0)}</span>
+                </div>
+                <div class="highlight-result">
+                    <div class="result-row">
+                        <span class="main">Final Batch Cost:</span>
+                        <span class="main">₹${netBatchCost.toFixed(0)}</span>
+                    </div>
+                </div>
+                ${salePrice > 0 ? `
+                <div class="result-row" style="font-weight:bold; margin-top:8px;">
+                    <span>Sales Value:</span><span>₹${totalRevenue.toFixed(0)}</span>
+                </div>` : ''}
+                ${profitHtml}
+             `;
+        }
+      } catch (e) { console.log(e); }
+    }
+
+    function downloadImage() {
+      const btn = document.querySelector(".btn-img");
+      const oldText = btn.textContent; btn.textContent = "...";
+      html2canvas($("captureArea"), { scale: 2 }).then(c => {
+        const a = document.createElement("a"); a.download = getFileName('png'); a.href = c.toDataURL(); a.click();
+        btn.textContent = oldText;
+      });
+    }
+
+    function downloadPDF() {
+      const btn = document.querySelector(".btn-pdf");
+      const oldText = btn.textContent; btn.textContent = "...";
+      html2canvas($("captureArea"), { scale: 2 }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdfWidth = 210;
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        const pdf = new jsPDF('p', 'mm', [pdfWidth, pdfHeight]);
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(getFileName('pdf'));
+        btn.textContent = oldText;
+      });
+    }
+
+    window.onload = () => {
+      setStatus("ready");
+      toggleHoleFields(); toggleMode();
+      $("date_display").textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      calcTotal();
+    };
+  </script>
+</body>
+
+</html>

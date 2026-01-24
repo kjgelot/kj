@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Us - Ashapura Steel</title><style> html { display: none; } </style>
+    <script>
+        // ==========================================
+        // 1. TIME LIMIT SETTING (અહીં મિનિટ બદલો)
+        // ==========================================
+        const TIME_LIMIT = 10; // અત્યારે 10 મિનિટ છે
+        // ==========================================
+
+        // 2. CHECK LOGIN KEY
+        const key = sessionStorage.getItem("company_access_key");
+        const loginTime = sessionStorage.getItem("login_time_stamp");
+        const now = Date.now();
+        const limit = TIME_LIMIT * 60 * 1000; // Milliseconds convert
+
+        // જો લોગિન કી ન હોય તો બહાર કાઢો
+        if (key !== "GRANTED_SECURE_2026") {
+            window.location.href = "login.html";
+        } 
+        // જો સમય પૂરો થઈ ગયો હોય તો લોગઆઉટ કરો
+        else if (loginTime && (now - loginTime > limit)) {
+            alert("Time Over! (10 Minutes). Please Login Again.");
+            sessionStorage.clear(); // બધું સાફ કરો
+            window.location.href = "login.html";
+        } 
+        else {
+            // બધું બરાબર હોય તો પેજ બતાવો
+            document.documentElement.style.display = 'block';
+            
+            // જો લોગિન ટાઈમ સેવ ન હોય (જૂના લોગિનમાં), તો અત્યારનો ટાઈમ સેવ કરો
+            if (!loginTime) {
+                sessionStorage.setItem("login_time_stamp", now);
+            }
+        }
+
+        // 3. AUTO LOGOUT (ચાલુ પેજ પર 10 મિનિટ થાય તો)
+        setTimeout(() => {
+            alert("Session Expired!");
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }, limit);
+
+        // 4. BLOCK DEVELOPER TOOLS
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
+    </script>
+  <style>
+    :root {
+      --bg: #f2f2f2;
+      --text: #333;
+      --nav-bg: #2c3e50;
+      --nav-text: #fff;
+      --card-bg: #fff;
+      --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      --link: #007bff;
+    }
+
+    body.dark {
+      --bg: #121212;
+      --text: #f5f5f5;
+      --nav-bg: #1e1e1e;
+      --nav-text: #90caf9;
+      --card-bg: #1e1e1e;
+      --card-shadow: 0 4px 8px rgba(255, 255, 255, 0.05);
+      --link: #90caf9;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--nav-bg);
+      padding: 14px 24px;
+    }
+
+    nav strong {
+      color: var(--nav-text);
+      font-size: 18px;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 16px;
+      margin: 0;
+      padding: 0;
+    }
+
+    nav ul li a {
+      color: var(--nav-text);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .form-box {
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      border-radius: 10px;
+      padding: 28px;
+      max-width: 420px;
+      margin: auto;
+      margin-top: 40px;
+      width: 90%;
+    }
+
+    .form-box h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .form-box input,
+    .form-box textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #999;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+    }
+
+    .form-box button {
+      width: 100%;
+      padding: 12px;
+      background: #1f4e21;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .form-box button:hover {
+      background: #45a049;
+    }
+
+    footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 16px;
+      background: var(--nav-bg);
+      color: var(--nav-text);
+      font-size: 14px;
+    }
+
+    footer a {
+      color: var(--link);
+      margin: 0 8px;
+    }
+
+    .toggle-btn {
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <strong>Ashapura Steel</strong>
+    <ul>
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="tel:+916359063984">📞 Contact</a></li>
+      <li><a href="https://wa.me/6359063984?text=Hello" target="_blank">💬 WhatsApp</a></li>
+      <li><a href="mail.html">📧 E-Mail</a></li>
+    </ul>
+    <button class="toggle-btn" id="themeBtn">🌙</button>
+  </nav>
+
+  <div class="form-box">
+    <h2>Contact Us</h2>
+    <form action="https://formsubmit.co/kalpeshjagdishbhai8@gmail.com" method="POST">
+      <input type="text" name="name" placeholder="Your Name" required>
+      <input type="email" name="email" placeholder="Your Email" required>
+      <input type="text" name="contact" placeholder="Your Contact No." required>
+      <textarea name="message" placeholder="Your Message" rows="5" required></textarea>
+      <button type="submit">Send Message</button>
+    </form>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Ashapura Steel ⚡ |
+    <a href="index.html">Home</a> •
+    <a href="tel:+916359063984">Call</a> •
+    <a href="https://wa.me/6359063984">WhatsApp</a> •
+    <a href="mail.html">Mail</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    const btn = document.getElementById("themeBtn");
+    btn.addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      btn.textContent = document.body.classList.contains("dark") ? "🌞" : "🌙";
+    });
+  </script>
+</body>
+
+</html>

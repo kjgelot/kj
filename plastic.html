@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plastic Packaging Bag Calculator — Pcs per Kg</title>
+  <style> html { display: none; } </style>
+    <script>
+        // ==========================================
+        // 1. TIME LIMIT SETTING (અહીં મિનિટ બદલો)
+        // ==========================================
+        const TIME_LIMIT = 10; // અત્યારે 10 મિનિટ છે
+        // ==========================================
+
+        // 2. CHECK LOGIN KEY
+        const key = sessionStorage.getItem("company_access_key");
+        const loginTime = sessionStorage.getItem("login_time_stamp");
+        const now = Date.now();
+        const limit = TIME_LIMIT * 60 * 1000; // Milliseconds convert
+
+        // જો લોગિન કી ન હોય તો બહાર કાઢો
+        if (key !== "GRANTED_SECURE_2026") {
+            window.location.href = "login.html";
+        } 
+        // જો સમય પૂરો થઈ ગયો હોય તો લોગઆઉટ કરો
+        else if (loginTime && (now - loginTime > limit)) {
+            alert("Time Over! (10 Minutes). Please Login Again.");
+            sessionStorage.clear(); // બધું સાફ કરો
+            window.location.href = "login.html";
+        } 
+        else {
+            // બધું બરાબર હોય તો પેજ બતાવો
+            document.documentElement.style.display = 'block';
+            
+            // જો લોગિન ટાઈમ સેવ ન હોય (જૂના લોગિનમાં), તો અત્યારનો ટાઈમ સેવ કરો
+            if (!loginTime) {
+                sessionStorage.setItem("login_time_stamp", now);
+            }
+        }
+
+        // 3. AUTO LOGOUT (ચાલુ પેજ પર 10 મિનિટ થાય તો)
+        setTimeout(() => {
+            alert("Session Expired!");
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }, limit);
+
+        // 4. BLOCK DEVELOPER TOOLS
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
+    </script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --muted: #94a3b8;
+      --text: #f8fafc;
+      --accent: #22d3ee;
+      --accent-2: #a78bfa;
+      --ring: 0 0 0 3px rgba(34, 211, 238, .4);
+      --radius: 14px;
+      --shadow: 0 8px 28px rgba(0, 0, 0, .35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e293b;
+      padding: 12px 20px;
+      color: white;
+    }
+
+    nav strong {
+      font-size: 18px;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 16px;
+      margin: 0;
+      padding: 0;
+    }
+
+    nav ul li a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 900px;
+      margin: auto;
+      padding: 32px 12px;
+      flex: 1;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, .08);
+      padding: 28px;
+      animation: fadeIn .6s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px
+    }
+
+    @media(min-width:720px) {
+      .grid {
+        grid-template-columns: repeat(12, 1fr)
+      }
+    }
+
+    .col-6 {
+      grid-column: span 12
+    }
+
+    @media(min-width:720px) {
+      .col-6 {
+        grid-column: span 6
+      }
+    }
+
+    label {
+      display: block;
+      font-size: .9rem;
+      color: var(--muted);
+      margin: 0 0 .4rem;
+      font-weight: 600
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, .25);
+      background: rgba(255, 255, 255, .05);
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border .2s, box-shadow .2s;
+    }
+
+    input::placeholder {
+      color: rgba(148, 163, 184, .6)
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: var(--ring);
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .stat {
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(148, 163, 184, .15);
+      padding: 18px;
+      border-radius: 12px;
+      text-align: center;
+      transition: transform .2s, box-shadow .2s;
+    }
+
+    .stat:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .4)
+    }
+
+    .stat h3 {
+      margin: 0 0 8px;
+      font-size: .95rem;
+      color: var(--muted);
+      font-weight: 500
+    }
+
+    .stat .val {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      color: var(--accent)
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid rgba(255, 255, 255, .1);
+      margin: 24px 0
+    }
+
+    footer {
+      text-align: center;
+      padding: 14px;
+      background: #1e293b;
+      color: white;
+      font-size: 14px;
+    }
+
+    footer a {
+      color: #22d3ee;
+      margin: 0 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ===== NAVBAR ===== -->
+  <nav>
+    <div><strong>Ashapura Steel</strong></div>
+    <ul>
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="tel:+916359063984">📞 Contact</a></li>
+      <li><a href="https://wa.me/6359063984?text=Hello" target="_blank">💬 WhatsApp</a></li>
+      <li><a href="mail.html">📧 E-Mail</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="wrap">
+    <section class="card">
+      <div class="grid">
+        <div class="col-6">
+          <label>Bag Length (inch)</label>
+          <input id="length" type="number" placeholder="Enter length" step="0.01" />
+        </div>
+        <div class="col-6">
+          <label>Bag Width (inch)</label>
+          <input id="width" type="number" placeholder="Enter width" step="0.01" />
+        </div>
+        <div class="col-6">
+          <label>Thickness Value</label>
+          <input id="thickness" type="number" placeholder="Enter thickness" step="0.01" />
+        </div>
+        <div class="col-6">
+          <label>Thickness Unit</label>
+          <select id="thickUnit">
+            <option value="micron">Micron</option>
+            <option value="gauge">Gauge</option>
+            <option value="mm">Millimeter</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label>Density</label>
+          <select id="density">
+            <option value="0.93">LDPE (0.93 g/cm³)</option>
+            <option value="0.92">LLDPE (0.92 g/cm³)</option>
+            <option value="0.90">PP (0.90 g/cm³)</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label>Sides</label>
+          <select id="sides">
+            <option value="2" selected>2 (Front + Back)</option>
+            <option value="1">1 (Single Sheet)</option>
+          </select>
+        </div>
+      </div>
+      <hr />
+      <div class="results">
+        <div class="stat">
+          <h3>Pieces per Kg</h3>
+          <div class="val" id="pcsPerKg">—</div>
+        </div>
+        <div class="stat">
+          <h3>Weight per Piece</h3>
+          <div class="val" id="gPerPc">—</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    © <span id="year"></span> Ashapura Steel ⚡ |
+    <a href="index.html">Home</a> •
+    <a href="tel:+916359063984">Call</a> •
+    <a href="https://wa.me/6359063984">WhatsApp</a> •
+    <a href="mail.html">Mail</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+    const $ = id => document.getElementById(id);
+    function inchToCm(val) { return val * 2.54 }
+    function micronToCm(m) { return m * 1e-4 }
+    function gaugeToMicron(g) { return g * 0.254 }
+    function mmToCm(mm) { return mm * 0.1 }
+
+    function calc() {
+      const L = inchToCm(parseFloat($('length').value || 0));
+      const W = inchToCm(parseFloat($('width').value || 0));
+      const S = parseInt($('sides').value) || 2;
+      let thick = parseFloat($('thickness').value || 0);
+      const unit = $('thickUnit').value;
+      let micron = 0;
+      if (unit === 'micron') micron = thick;
+      if (unit === 'gauge') micron = gaugeToMicron(thick);
+      if (unit === 'mm') micron = thick * 1000;
+      const tcm = micronToCm(micron);
+      const area = L * W * S;
+      const vol = area * tcm;
+      const dens = parseFloat($('density').value);
+      const gPerPc = vol * dens;
+      const pcsPerKg = 1000 / gPerPc;
+      $('gPerPc').textContent = isFinite(gPerPc) ? gPerPc.toFixed(3) + ' g' : '—';
+      $('pcsPerKg').textContent = isFinite(pcsPerKg) ? pcsPerKg.toFixed(0) + ' pcs' : '—';
+    }
+    document.querySelectorAll('input,select').forEach(el => el.addEventListener('input', calc));
+    calc();
+  </script>
+</body>
+
+</html>
