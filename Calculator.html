@@ -8,6 +8,10 @@
 </head>
 <body>
     <div class="calculator">
+        <div id="security-screen" style="display: none;">ACCESS DENIED</div>
+        
+        <div id="history-log"></div>
+
         <input type="text" id="hidden-keyboard" style="position: absolute; top: -1000px; opacity: 0;">
         
         <div id="display-container" onclick="focusKeyboard()">
@@ -16,7 +20,7 @@
         </div>
 
         <div class="buttons">
-            <button onclick="clearDisplay()" class="operator">C</button>
+            <button id="clear-btn" class="operator">C</button>
             <button onclick="appendToDisplay('%')" class="operator">%</button>
             <button onclick="appendToDisplay('/')" class="operator">/</button>
             <button onclick="appendToDisplay('*')" class="operator">*</button>
@@ -34,7 +38,7 @@
             <button onclick="appendToDisplay('1')">1</button>
             <button onclick="appendToDisplay('2')">2</button>
             <button onclick="appendToDisplay('3')">3</button>
-            <button onclick="calculateResult()" class="equal" style="grid-row: span 2;">=</button>
+            <button id="equal-btn" class="equal" style="grid-row: span 2;">=</button>
 
             <button onclick="appendToDisplay('0')" style="grid-column: span 2;">0</button>
             <button onclick="appendToDisplay('.')">.</button>
