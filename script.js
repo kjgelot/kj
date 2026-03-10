@@ -44,9 +44,16 @@ function clearDisplay() {
     liveResult.innerText = "";
 }
 
-// Encrypted maps
 const getFwdMap = () => JSON.parse(atob("eyJrIjoiMSIsImUiOiIyIiwibiI6IjMiLCJyIjoiNCIsImMiOiI1IiwiaCI6IjYiLCJ0IjoiNyIsImEiOiI4IiwiZCI6IjkiLCJ1IjoiMCIsInYiOiIwIiwidyI6IjAiLCJ4IjoiMCIsInkiOiIwIiwieiI6IjAifQ=="));
 const getRevMap = () => JSON.parse(atob("eyIxIjoiSyIsIjIiOiJFIiwiMyI6Ik4iLCI0IjoiUiIsIjUiOiJDIiwiNiI6IkgiLCI3IjoiVCIsIjgiOiJBIiwiOSI6IkQifQ=="));
+
+function triggerError() {
+    display.value = "Error";
+    liveResult.innerText = "";
+    setTimeout(() => {
+        if (display.value === "Error") clearDisplay();
+    }, 1000);
+}
 
 function updateLive() {
     let expr = display.value.toLowerCase();
@@ -55,8 +62,10 @@ function updateLive() {
         return; 
     }
 
-    // Checking "mahir" securely
-    if (expr === atob("bWFoaXI=")) {
+    const secretPass = atob("bWFoaXI="); // "mahir" encrypted
+
+    // Unlock exactly when "mahir" is typed
+    if (expr === secretPass) {
         modeActive = true;
         display.value = "Unlocked!";
         liveResult.innerText = "";
@@ -64,25 +73,51 @@ function updateLive() {
         return;
     }
 
-    if (modeActive) {
+    let pureChars = expr.replace(/[+\-*/.%()]/g, '');
+    let hasNumbers = /[0-9]/.test(pureChars);
+    let hasLetters = /[a-z]/i.test(pureChars);
+
+    // Rule 1: Mix of numbers and letters = Error
+    if (hasNumbers && hasLetters) {
+        triggerError();
+        return;
+    }
+
+    // Rule 2: Letters typed without password unlock = Error, UNLESS it's matching the password exactly
+    if (hasLetters && !modeActive) {
+        if (!secretPass.startsWith(expr)) {
+            triggerError();
+            return;
+        }
+    }
+
+    let evalExpr = expr;
+    let isLetterCalc = modeActive && hasLetters && !hasNumbers;
+
+    if (isLetterCalc) {
         const map = getFwdMap();
         let dec = "";
         for (let i = 0; i < expr.length; i++) {
             dec += map[expr[i]] !== undefined ? map[expr[i]] : expr[i];
         }
-        expr = dec;
+        evalExpr = dec;
     }
 
     try {
-        expr = expr.replace(/%/g, '/100');
+        evalExpr = evalExpr.replace(/%/g, '/100');
 
-        if (/[+\-*/.]$/.test(expr)) {
+        if (/[+\-*/.]$/.test(evalExpr)) {
             return; 
         }
 
-        let res = eval(expr);
+        // Do not calculate if the user is just typing the password
+        if (hasLetters && !modeActive) {
+            return;
+        }
+
+        let res = eval(evalExpr);
         if (res !== undefined && !Number.isNaN(res) && res !== Infinity) {
-            if (modeActive) {
+            if (isLetterCalc) {
                 let resStr = res.toString().toUpperCase();
                 const revMap = getRevMap();
                 let enc = "";
@@ -90,7 +125,6 @@ function updateLive() {
                 
                 for (let i = 0; i < resStr.length; i++) {
                     if (resStr[i] === '0') {
-                        // Ahin 0 mate randomly U, V, W, X, Y, Z mathi aek pasand thase
                         enc += zeroChars[Math.floor(Math.random() * zeroChars.length)];
                     } else {
                         enc += revMap[resStr[i]] !== undefined ? revMap[resStr[i]] : resStr[i];

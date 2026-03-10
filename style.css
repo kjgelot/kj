@@ -5,12 +5,13 @@
 body {
     margin: 0;
     padding: 0;
-    height: 100vh;
+    height: 100dvh; /* Dynamically resizes when mobile keyboard opens */
     width: 100vw;
     background-color: #000;
     font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
+    overflow: hidden; /* Prevents unwanted scrolling */
 }
 
 .calculator {
@@ -72,6 +73,14 @@ button:active {
 
 .operator { background-color: #ff9800; }
 .equal { background-color: #4caf50; }
+
+/* Triggered when mobile keyboard opens and height shrinks */
+@media (max-height: 600px) {
+    #display-container { flex: 0.25; padding: 10px; }
+    #display { font-size: 35px; }
+    #live-result { font-size: 24px; min-height: 28px; }
+    button { font-size: 20px; }
+}
 
 @media (max-width: 480px) {
     button { font-size: 26px; }
