@@ -6,6 +6,54 @@
     <title>Secret Calculator</title>
     <link rel="stylesheet" href="style.css">
 </head>
+<script>
+        // ==========================================
+        // 1. TIME LIMIT SETTING (અહીં મિનિટ બદલો)
+        // ==========================================
+        const TIME_LIMIT = 10; // અત્યારે 10 મિનિટ છે
+        // ==========================================
+
+        // 2. CHECK LOGIN KEY
+        const key = sessionStorage.getItem("company_access_key");
+        const loginTime = sessionStorage.getItem("login_time_stamp");
+        const now = Date.now();
+        const limit = TIME_LIMIT * 60 * 1000; // Milliseconds convert
+
+        // જો લોગિન કી ન હોય તો બહાર કાઢો
+        if (key !== "GRANTED_SECURE_2026") {
+            window.location.href = "login.html";
+        } 
+        // જો સમય પૂરો થઈ ગયો હોય તો લોગઆઉટ કરો
+        else if (loginTime && (now - loginTime > limit)) {
+            alert("Time Over! (10 Minutes). Please Login Again.");
+            sessionStorage.clear(); // બધું સાફ કરો
+            window.location.href = "login.html";
+        } 
+        else {
+            // બધું બરાબર હોય તો પેજ બતાવો
+            document.documentElement.style.display = 'block';
+            
+            // જો લોગિન ટાઈમ સેવ ન હોય (જૂના લોગિનમાં), તો અત્યારનો ટાઈમ સેવ કરો
+            if (!loginTime) {
+                sessionStorage.setItem("login_time_stamp", now);
+            }
+        }
+
+        // 3. AUTO LOGOUT (ચાલુ પેજ પર 10 મિનિટ થાય તો)
+        setTimeout(() => {
+            alert("Session Expired!");
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }, limit);
+
+        // 4. BLOCK DEVELOPER TOOLS
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
+    </script>
 <body>
     <div class="calculator">
         <div id="security-screen" style="display: none;">ACCESS DENIED</div>
@@ -16,7 +64,7 @@
         
         <div id="display-container" onclick="focusKeyboard()">
             <div id="live-result"></div>
-            <input type="text" id="display" readonly placeholder="Tap to type">
+            <input type="text" id="display" readonly placeholder="">
         </div>
 
         <div class="buttons">

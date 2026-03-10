@@ -6,13 +6,12 @@ const hiddenInput = document.getElementById("hidden-keyboard");
 const historyLog = document.getElementById("history-log");
 const securityScreen = document.getElementById("security-screen");
 
-// Developer Tools Protection (Debugger Trap)
 setInterval(function() {
     let before = new Date().getTime();
     debugger;
     let after = new Date().getTime();
     if (after - before > 100) {
-        securityScreen.style.display = "flex"; // Locks screen if dev tools open
+        securityScreen.style.display = "flex"; 
         document.body.style.overflow = "hidden";
     }
 }, 2000);
@@ -36,7 +35,7 @@ document.addEventListener("keydown", function(event) {
     } else if (key === "backspace") {
         display.value = display.value.slice(0, -1);
         updateLive();
-    } else if (key === "escape" || key === "c") {
+    } else if (key === "escape") { // FIXED: Removed the 'c' shortcut here
         handleClearPress();
     } else if (key === "%" || key.length === 1) { 
         appendToDisplay(key);
@@ -87,7 +86,7 @@ function startPress(e) {
             historyLog.style.display = historyLog.style.display === "flex" ? "none" : "flex";
             updateHistoryView();
         }
-    }, 1000); // 1 second long press
+    }, 1000); 
 }
 
 function cancelPress() {
@@ -145,7 +144,7 @@ function updateLive() {
         modeActive = true;
         display.value = "Unlocked!";
         liveResult.innerText = "";
-        setTimeout(() => { display.value = ""; }, 1000);
+        setTimeout(() => { if(display.value === "Unlocked!") display.value = ""; }, 1000);
         return;
     }
 
@@ -207,7 +206,7 @@ function calculateResult() {
         const answer = liveResult.innerText.replace("= ", "");
         
         // Save to secret history if unlocked
-        if (modeActive) {
+        if (modeActive && equation !== "Unlocked!") {
             secretHistory.push(`${equation.toUpperCase()} = ${answer}`);
         }
 
