@@ -1,62 +1,80 @@
+* {
+    box-sizing: border-box;
+}
+
 body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    background-color: #000;
+    font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #f0f0f0;
-    font-family: Arial, sans-serif;
-    margin: 0;
 }
 
 .calculator {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #222;
+}
+
+#display-container {
+    flex: 0.35; 
     background-color: #333;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
     padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
-    width: 95%;
-    max-width: 500px;
+    cursor: text;
+}
+
+#live-result {
+    color: #888;
+    font-size: 32px;
+    text-align: right;
+    min-height: 40px;
+    margin-bottom: 5px;
 }
 
 #display {
     width: 100%;
-    height: 60px;
-    font-size: 28px;
-    text-align: right;
-    margin-bottom: 15px;
-    padding: 10px;
-    box-sizing: border-box;
+    background: transparent;
     border: none;
-    border-radius: 5px;
-    background-color: #fff;
-    color: #000;
+    color: #fff;
+    font-size: 50px;
+    text-align: right;
+    outline: none;
 }
 
 .buttons {
+    flex: 0.65; 
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    background-color: #111;
 }
 
 button {
-    padding: 15px;
-    font-size: 18px;
     border: none;
-    border-radius: 5px;
+    font-size: 28px;
+    background-color: #444;
+    color: #fff;
     cursor: pointer;
-    background-color: #eee;
-    transition: background-color 0.2s;
+    transition: 0.1s;
 }
 
 button:active {
-    transform: scale(0.95);
+    background-color: #666;
 }
 
-.operator { background-color: #ff9800; color: white; }
-.sci { background-color: #2196F3; color: white; }
-.equal { background-color: #4caf50; color: white; }
+.operator { background-color: #ff9800; }
+.equal { background-color: #4caf50; }
 
-/* Mobile Responsiveness */
 @media (max-width: 480px) {
-    button { padding: 10px; font-size: 16px; }
-    #display { height: 50px; font-size: 22px; }
+    button { font-size: 26px; }
+    #display { font-size: 45px; }
+    #live-result { font-size: 28px; }
 }
