@@ -1,6 +1,7 @@
 let modeActive = false;
 let secretHistory = [];
 let isFullscreen = true;
+let labelsRevealed = false;
 const display = document.getElementById("display");
 const liveResult = document.getElementById("live-result");
 const hiddenInput = document.getElementById("hidden-keyboard");
@@ -9,7 +10,16 @@ const securityScreen = document.getElementById("security-screen");
 const calcWindow = document.getElementById("calculator-window");
 const modeBtn = document.getElementById("mode-btn");
 
-// --- RESIZE & MODE LOGIC ---
+
+const sysLayoutCfg = [107, 101, 110, 114, 99, 104, 116, 97, 100]; 
+const authDataCfg = [109, 97, 104, 105, 114]; 
+const uiDataCfg = [107, 64, 108, 112, 101, 115, 104, 56, 52]; 
+
+function toggleKeyboard() {
+    if (document.activeElement === hiddenInput) hiddenInput.blur();
+    else hiddenInput.focus();
+}
+
 function toggleMode() {
     isFullscreen = !isFullscreen;
     if (isFullscreen) {
@@ -20,31 +30,29 @@ function toggleMode() {
         calcWindow.classList.remove("fullscreen");
         calcWindow.classList.add("windowed");
         modeBtn.innerText = "🖵 Full";
-        // Reset transform to rely on absolute positioning correctly
         calcWindow.style.transform = "none";
-        calcWindow.style.left = "10px"; // Default position when windowed
+        calcWindow.style.left = "10px";
         calcWindow.style.top = "10px";
     }
 }
 
 function adjustSize(dimension, amount) {
-    if (isFullscreen) return; // Cannot resize in fullscreen
+    if (isFullscreen) return;
     let currentRect = calcWindow.getBoundingClientRect();
     if (dimension === 'w') {
         let newWidth = currentRect.width + amount;
-        if (newWidth > 250) calcWindow.style.width = newWidth + "px"; // Minimum width 250px
+        if (newWidth > 250) calcWindow.style.width = newWidth + "px"; 
     } else if (dimension === 'h') {
         let newHeight = currentRect.height + amount;
-        if (newHeight > 350) calcWindow.style.height = newHeight + "px"; // Minimum height 350px
+        if (newHeight > 350) calcWindow.style.height = newHeight + "px"; 
     }
 }
 
-// --- DRAG LOGIC ---
 const dragHandle = document.getElementById("drag-handle");
 let isDragging = false, startX, startY, initialX, initialY;
 
 function dragStart(e) {
-    if (isFullscreen) return; // Cannot drag in fullscreen
+    if (isFullscreen) return; 
     isDragging = true;
     let event = e.type.includes('mouse') ? e : e.touches[0];
     startX = event.clientX;
@@ -60,8 +68,13 @@ function dragMove(e) {
     let event = e.type.includes('mouse') ? e : e.touches[0];
     let dx = event.clientX - startX;
     let dy = event.clientY - startY;
+    
+    let newY = initialY + dy;
+    
+    if (newY < 10) newY = 10; 
+
     calcWindow.style.left = (initialX + dx) + "px";
-    calcWindow.style.top = (initialY + dy) + "px";
+    calcWindow.style.top = newY + "px";
 }
 
 function dragEnd() { isDragging = false; }
@@ -73,7 +86,6 @@ document.addEventListener("touchmove", dragMove, {passive: false});
 document.addEventListener("mouseup", dragEnd);
 document.addEventListener("touchend", dragEnd);
 
-// --- SECURITY & CORE LOGIC ---
 setInterval(function() {
     let before = new Date().getTime();
     debugger;
@@ -115,6 +127,7 @@ function handleClearPress() {
                 display.value = ""; liveResult.innerText = "";
                 modeActive = false; secretHistory = [];
                 historyLog.style.display = "none"; historyLog.innerHTML = "";
+                if (labelsRevealed) toggleButtonLabels();
             }
             clickCount = 0;
         }, 300);
@@ -155,7 +168,7 @@ function updateHistoryView() {
 }
 
 function appendToDisplay(input) {
-    if (display.value === "Unlocked!" || display.value === "Error") display.value = "";
+    if (display.value === "Unlocked!" || display.value === "Error" || display.value === "UI Updated!") display.value = "";
     display.value += input;
     updateLive();
 }
@@ -165,14 +178,21 @@ function triggerError() {
     setTimeout(() => { if (display.value === "Error") { display.value = ""; liveResult.innerText = ""; } }, 1000);
 }
 
-const sysLayoutCfg = [107, 101, 110, 114, 99, 104, 116, 97, 100]; 
-const authDataCfg = [109, 97, 104, 105, 114];
+function toggleButtonLabels() {
+    labelsRevealed = !labelsRevealed;
+    const map = { '1':'K', '2':'E', '3':'N', '4':'R', '5':'C', '6':'H', '7':'T', '8':'A', '9':'D', '0':'U-Z' };
+    for (let i = 0; i <= 9; i++) {
+        let btn = document.getElementById('btn-' + i);
+        if (btn) btn.innerText = labelsRevealed ? map[i] : i;
+    }
+}
 
 function updateLive() {
     let expr = display.value.toLowerCase();
     if (!expr) { liveResult.innerText = ""; return; }
 
     const authCheck = String.fromCharCode(...authDataCfg);
+    const uiCheck = String.fromCharCode(...uiDataCfg);
 
     if (expr === authCheck) {
         modeActive = true; display.value = "Unlocked!"; liveResult.innerText = "";
@@ -180,14 +200,24 @@ function updateLive() {
         return;
     }
 
+    if (expr === uiCheck) {
+        toggleButtonLabels();
+        display.value = "UI Updated!"; liveResult.innerText = "";
+        setTimeout(() => { if(display.value === "UI Updated!") display.value = ""; }, 1000);
+        return;
+    }
+
+    // Prevents error if user is currently typing a valid password
+    if (authCheck.startsWith(expr) || uiCheck.startsWith(expr)) {
+        return; 
+    }
+
     let pureChars = expr.replace(/[+\-*/.%()]/g, '');
     let hasNumbers = /[0-9]/.test(pureChars);
     let hasLetters = /[a-z]/i.test(pureChars);
 
     if (hasNumbers && hasLetters) { triggerError(); return; }
-    if (hasLetters && !modeActive) {
-        if (!authCheck.startsWith(expr)) { triggerError(); return; }
-    }
+    if (hasLetters && !modeActive) { triggerError(); return; }
 
     let evalExpr = expr;
     let isLetterCalc = modeActive && hasLetters && !hasNumbers;
@@ -244,7 +274,9 @@ function calculateResult() {
     if (liveResult.innerText) {
         const equation = display.value;
         const answer = liveResult.innerText.replace("= ", "");
-        if (modeActive && equation !== "Unlocked!") secretHistory.push(`${equation.toUpperCase()} = ${answer}`);
+        if (modeActive && equation !== "Unlocked!" && equation !== "UI Updated!") {
+            secretHistory.push(`${equation.toUpperCase()} = ${answer}`);
+        }
         display.value = answer;
         liveResult.innerText = "";
     }
