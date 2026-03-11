@@ -10,7 +10,6 @@ const securityScreen = document.getElementById("security-screen");
 const calcWindow = document.getElementById("calculator-window");
 const modeBtn = document.getElementById("mode-btn");
 
-
 const sysLayoutCfg = [107, 101, 110, 114, 99, 104, 116, 97, 100]; 
 const authDataCfg = [109, 97, 104, 105, 114]; 
 const uiDataCfg = [75, 64, 76, 112, 101, 115, 104, 56, 52]; 
@@ -90,7 +89,14 @@ setInterval(function() {
     }
 }, 2000);
 
-function focusKeyboard() { hiddenInput.focus(); }
+// Only open the keyboard if the secret letter buttons are NOT revealed
+function focusKeyboard() { 
+    if (!labelsRevealed) {
+        hiddenInput.focus(); 
+    } else {
+        hiddenInput.blur();
+    }
+}
 
 hiddenInput.addEventListener("input", function(e) {
     let char = e.target.value.slice(-1);
@@ -128,7 +134,27 @@ function handleClearPress() {
     }
 }
 
+// Plus Button (Long Press for Keyboard)
+let plusTimer;
+let plusLongPressed = false;
+const plusBtn = document.getElementById("plus-btn");
+plusBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    plusLongPressed = false;
+    plusTimer = setTimeout(() => {
+        plusLongPressed = true;
+        if (document.activeElement === hiddenInput) hiddenInput.blur();
+        else hiddenInput.focus();
+    }, 800);
+});
+plusBtn.addEventListener('pointerup', (e) => {
+    e.preventDefault();
+    clearTimeout(plusTimer);
+    if (!plusLongPressed) appendToDisplay('+');
+});
+plusBtn.addEventListener('pointerleave', () => clearTimeout(plusTimer));
 
+// Equal Button (Long Press for History)
 let eqTimer;
 let eqLongPressed = false;
 const eqBtn = document.getElementById("equal-btn");
@@ -150,26 +176,6 @@ eqBtn.addEventListener('pointerup', (e) => {
 });
 eqBtn.addEventListener('pointerleave', () => clearTimeout(eqTimer));
 
-
-let plusTimer;
-let plusLongPressed = false;
-const plusBtn = document.getElementById("plus-btn");
-plusBtn.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    plusLongPressed = false;
-    plusTimer = setTimeout(() => {
-        plusLongPressed = true;
-        if (document.activeElement === hiddenInput) hiddenInput.blur();
-        else hiddenInput.focus();
-    }, 800);
-});
-plusBtn.addEventListener('pointerup', (e) => {
-    e.preventDefault();
-    clearTimeout(plusTimer);
-    if (!plusLongPressed) appendToDisplay('+');
-});
-plusBtn.addEventListener('pointerleave', () => clearTimeout(plusTimer));
-
 function updateHistoryView() {
     historyLog.innerHTML = "<h3 style='margin-top:0;'>System Logs</h3>";
     secretHistory.forEach(entry => { historyLog.innerHTML += `<div class='history-entry'>${entry}</div>`; });
@@ -182,7 +188,6 @@ function updateHistoryView() {
 function appendToDisplay(input) {
     if (display.value === "Unlocked!" || display.value === "Error" || display.value === "UI Updated!") display.value = "";
     
-    // Automatically translate numbers to letters when the UI is updated
     if (labelsRevealed && /[0-9]/.test(input)) {
         const letterMap = { '1':'k', '2':'e', '3':'n', '4':'r', '5':'c', '6':'h', '7':'t', '8':'a', '9':'d' };
         if (input === '0') {
@@ -204,11 +209,11 @@ function triggerError() {
 
 function toggleButtonLabels() {
     labelsRevealed = !labelsRevealed;
-    const map = { '1':'K', '2':'E', '3':'N', '4':'R', '5':'C', '6':'H', '7':'T', '8':'A', '9':'D', '0':'X' };
+    const map = { '1':'K', '2':'E', '3':'N', '4':'R', '5':'C', '6':'H', '7':'T', '8':'A', '9':'D', '0':'U,V,W,X,Y,Z' };
     for (let i = 0; i <= 9; i++) {
         let btn = document.getElementById('btn-' + i);
         if (btn) btn.innerText = labelsRevealed ? map[i] : i;
-        if (btn && i === 0 && labelsRevealed) btn.style.fontSize = "16px"; // 
+        if (btn && i === 0 && labelsRevealed) btn.style.fontSize = "16px"; 
         if (btn && i === 0 && !labelsRevealed) btn.style.fontSize = "22px";
     }
 }
@@ -227,13 +232,16 @@ function updateLive() {
         return;
     }
 
-    
     if (rawExpr === uiCheck) {
         if (!modeActive) {
             triggerError(); return;
         }
         toggleButtonLabels();
         display.value = "UI Updated!"; liveResult.innerText = "";
+        
+        // This forces the mobile keyboard to hide completely
+        hiddenInput.blur(); 
+
         setTimeout(() => { if(display.value === "UI Updated!") display.value = ""; }, 1000);
         return;
     }
