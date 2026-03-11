@@ -89,7 +89,6 @@ setInterval(function() {
     }
 }, 2000);
 
-
 function focusKeyboard() { 
     if (!labelsRevealed) {
         hiddenInput.focus(); 
@@ -109,7 +108,7 @@ document.addEventListener("keydown", function(event) {
     const key = event.key;
     
     if (key === "Enter" || key === "=") calculateResult();
-    else if (key === "Backspace") { display.value = display.value.slice(0, -1); updateLive(); }
+    else if (key === "Backspace") deleteLastChar(); 
     else if (key === "Escape") handleClearPress();
     else if (key === "%" || key.length === 1) appendToDisplay(key);
 });
@@ -134,6 +133,15 @@ function handleClearPress() {
     }
 }
 
+// Backspace Function
+function deleteLastChar() {
+    if (display.value === "Unlocked!" || display.value === "Error" || display.value === "UI Updated!") {
+        display.value = "";
+    } else {
+        display.value = display.value.slice(0, -1);
+    }
+    updateLive();
+}
 
 let plusTimer;
 let plusLongPressed = false;
@@ -154,7 +162,6 @@ plusBtn.addEventListener('pointerup', (e) => {
 });
 plusBtn.addEventListener('pointerleave', () => clearTimeout(plusTimer));
 
-// Equal Button (Long Press for History)
 let eqTimer;
 let eqLongPressed = false;
 const eqBtn = document.getElementById("equal-btn");
@@ -209,7 +216,7 @@ function triggerError() {
 
 function toggleButtonLabels() {
     labelsRevealed = !labelsRevealed;
-    const map = { '1':'K', '2':'E', '3':'N', '4':'R', '5':'C', '6':'H', '7':'T', '8':'A', '9':'D', '0':'UX' };
+    const map = { '1':'K', '2':'E', '3':'N', '4':'R', '5':'C', '6':'H', '7':'T', '8':'A', '9':'D', '0':'X' };
     for (let i = 0; i <= 9; i++) {
         let btn = document.getElementById('btn-' + i);
         if (btn) btn.innerText = labelsRevealed ? map[i] : i;
@@ -238,10 +245,7 @@ function updateLive() {
         }
         toggleButtonLabels();
         display.value = "UI Updated!"; liveResult.innerText = "";
-        
-        // This forces the mobile keyboard to hide completely
         hiddenInput.blur(); 
-
         setTimeout(() => { if(display.value === "UI Updated!") display.value = ""; }, 1000);
         return;
     }
