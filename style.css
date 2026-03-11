@@ -1,122 +1,88 @@
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
-    margin: 0;
-    padding: 0;
-    height: 100dvh; /* Dynamically resizes when mobile keyboard opens */
-    width: 100vw;
+    margin: 0; padding: 0;
+    height: 100dvh; width: 100vw;
     background-color: #000;
     font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    overflow: hidden; /* Prevents unwanted scrolling */
+    overflow: hidden; 
 }
 
-.calculator {
-    width: 100%;
-    height: 100%;
+/* Base Window Styles */
+.calculator-window {
+    background-color: #222;
     display: flex;
     flex-direction: column;
-    background-color: #222;
+    transition: width 0.2s, height 0.2s; /* Smooth resizing */
 }
+
+/* Fullscreen Mode (Default) */
+.calculator-window.fullscreen {
+    position: fixed;
+    top: 0 !important; left: 0 !important;
+    width: 100vw !important; height: 100dvh !important;
+    transform: none !important;
+    border-radius: 0;
+}
+
+/* Windowed Mode (Floating) */
+.calculator-window.windowed {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 350px; height: 600px; /* Default small size */
+    border-radius: 12px;
+    box-shadow: 0px 10px 30px rgba(0,0,0,0.6);
+}
+
+/* Control Bar UI */
+#control-bar {
+    display: flex; background-color: #333;
+    padding: 5px; gap: 4px;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+}
+
+#control-bar button {
+    padding: 8px 5px; font-size: 14px;
+    background-color: #555; border-radius: 4px; flex: 1;
+}
+
+#control-bar button:active { background-color: #777; }
+
+#drag-handle {
+    flex: 2; background-color: #444; color: #aaa;
+    display: flex; align-items: center; justify-content: center;
+    cursor: grab; font-size: 14px; border-radius: 4px;
+    touch-action: none; user-select: none;
+}
+#drag-handle:active { cursor: grabbing; background-color: #666; }
+
+/* Calculator UI inside window */
+.calculator { display: flex; flex-direction: column; padding: 10px; height: calc(100% - 40px); }
 
 #display-container {
-    flex: 0.35; 
-    background-color: #333;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 20px;
-    cursor: text;
+    background-color: #111; display: flex; flex-direction: column;
+    justify-content: flex-end; padding: 10px; cursor: text; border-radius: 8px; margin-bottom: 10px; flex: 0.3;
 }
 
-#live-result {
-    color: #888;
-    font-size: 32px;
-    text-align: right;
-    min-height: 40px;
-    margin-bottom: 5px;
-}
+#live-result { color: #888; font-size: 24px; text-align: right; min-height: 30px; margin-bottom: 5px; }
+#display { width: 100%; background: transparent; border: none; color: #fff; font-size: 36px; text-align: right; outline: none; }
 
-#display {
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 50px;
-    text-align: right;
-    outline: none;
-}
-
-.buttons {
-    flex: 0.65; 
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2px;
-    background-color: #111;
-}
-
-button {
-    border: none;
-    font-size: 28px;
-    background-color: #444;
-    color: #fff;
-    cursor: pointer;
-    transition: 0.1s;
-}
-
-button:active {
-    background-color: #666;
-}
-
+.buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; flex: 0.7; }
+button { border: none; font-size: 22px; background-color: #444; color: #fff; cursor: pointer; border-radius: 5px; transition: 0.1s; }
+button:active { background-color: #666; }
 .operator { background-color: #ff9800; }
 .equal { background-color: #4caf50; }
 
-/* Triggered when mobile keyboard opens and height shrinks */
-@media (max-height: 600px) {
-    #display-container { flex: 0.25; padding: 10px; }
-    #display { font-size: 35px; }
-    #live-result { font-size: 24px; min-height: 28px; }
-    button { font-size: 20px; }
-}
-
-@media (max-width: 480px) {
-    button { font-size: 26px; }
-    #display { font-size: 45px; }
-    #live-result { font-size: 28px; }
-}
-
-/* New Security and History Styles */
 #history-log {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.95);
-    color: #0f0;
-    padding: 20px;
-    font-size: 18px;
-    z-index: 100;
-    overflow-y: auto;
-    display: none;
-    flex-direction: column;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.95); color: #0f0; padding: 20px;
+    font-size: 18px; z-index: 100; overflow-y: auto; display: none; flex-direction: column;
 }
-
-.history-entry { 
-    margin-bottom: 10px; 
-    border-bottom: 1px solid #333; 
-    padding-bottom: 5px; 
-}
-
+.history-entry { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
 #security-screen {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-color: red;
-    color: white;
-    font-size: 40px;
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 999;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: red; color: white; font-size: 40px; font-weight: bold;
+    display: flex; justify-content: center; align-items: center; z-index: 999;
 }
