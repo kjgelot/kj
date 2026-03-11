@@ -89,7 +89,7 @@ setInterval(function() {
     }
 }, 2000);
 
-// Only open the keyboard if the secret letter buttons are NOT revealed
+
 function focusKeyboard() { 
     if (!labelsRevealed) {
         hiddenInput.focus(); 
@@ -134,7 +134,7 @@ function handleClearPress() {
     }
 }
 
-// Plus Button (Long Press for Keyboard)
+
 let plusTimer;
 let plusLongPressed = false;
 const plusBtn = document.getElementById("plus-btn");
@@ -209,7 +209,7 @@ function triggerError() {
 
 function toggleButtonLabels() {
     labelsRevealed = !labelsRevealed;
-    const map = { '1':'K', '2':'E', '3':'N', '4':'R', '5':'C', '6':'H', '7':'T', '8':'A', '9':'D', '0':'U,V,W,X,Y,Z' };
+    const map = { '1':'K', '2':'E', '3':'N', '4':'R', '5':'C', '6':'H', '7':'T', '8':'A', '9':'D', '0':'UX' };
     for (let i = 0; i <= 9; i++) {
         let btn = document.getElementById('btn-' + i);
         if (btn) btn.innerText = labelsRevealed ? map[i] : i;
