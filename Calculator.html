@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Advanced Resizable Calculator</title>
+    <title>Calculator</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<script>
+ <script>
         // ==========================================
         // 1. TIME LIMIT SETTING (અહીં મિનિટ બદલો)
         // ==========================================
@@ -67,7 +67,6 @@
             <button class="resize-btn" onclick="adjustSize('w', 30)">W+</button>
             <button class="resize-btn" onclick="adjustSize('h', -30)">H-</button>
             <button class="resize-btn" onclick="adjustSize('h', 30)">H+</button>
-            <button class="resize-btn" onclick="toggleKeyboard()" style="background-color: #2196F3;">Tap</button>
             <div id="drag-handle">≡ Drag</div>
         </div>
         
@@ -91,11 +90,13 @@
                 <button id="btn-4" onclick="appendToDisplay('4')" onpointerdown="event.preventDefault()">4</button>
                 <button id="btn-5" onclick="appendToDisplay('5')" onpointerdown="event.preventDefault()">5</button>
                 <button id="btn-6" onclick="appendToDisplay('6')" onpointerdown="event.preventDefault()">6</button>
-                <button onclick="appendToDisplay('+')" class="operator" onpointerdown="event.preventDefault()">+</button>
+                
+                <button id="plus-btn" class="operator" onpointerdown="event.preventDefault()">+</button>
 
                 <button id="btn-1" onclick="appendToDisplay('1')" onpointerdown="event.preventDefault()">1</button>
                 <button id="btn-2" onclick="appendToDisplay('2')" onpointerdown="event.preventDefault()">2</button>
                 <button id="btn-3" onclick="appendToDisplay('3')" onpointerdown="event.preventDefault()">3</button>
+                
                 <button id="equal-btn" class="equal" style="grid-row: span 2;" onpointerdown="event.preventDefault()">=</button>
 
                 <button id="btn-0" onclick="appendToDisplay('0')" style="grid-column: span 2;" onpointerdown="event.preventDefault()">0</button>
